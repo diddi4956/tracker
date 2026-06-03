@@ -11,6 +11,7 @@ import com.example.tracker.data.dao.HabitCategoryDefinitionDao
 import com.example.tracker.data.dao.HabitDefinitionDao
 import com.example.tracker.data.dao.HabitRecordDao
 import com.example.tracker.data.dao.ItemDefinitionDao
+import com.example.tracker.data.entity.ConditionCategory
 import com.example.tracker.data.entity.ConditionDefinition
 import com.example.tracker.data.entity.ConditionCheckRecord
 import com.example.tracker.data.entity.ConditionDefinitionTag
@@ -25,21 +26,23 @@ import com.example.tracker.data.entity.ItemDefinition
 
 @Database(// 되게 신기한게 클래스로 시작되지가 않는다 이건? 왜지? 이 어노테이션은 뭐지
     entities = [
-               ExpenseSubCategoryDefinition::class,
-               ExpenseRecord::class,
-               ItemDefinition::class,
-               HabitDefinition::class,
-               ConditionDefinition::class,
-               HabitRecord::class,
-               ConditionCheckRecord::class,
-               DailyEntry::class,
+        ExpenseSubCategoryDefinition::class,
+        ExpenseRecord::class,
+        ItemDefinition::class,
+        HabitDefinition::class,
+        ConditionDefinition::class,
+        HabitRecord::class,
+        ConditionCheckRecord::class,
+        ConditionCategory::class,
+        DailyEntry::class,
         ConditionDefinitionTag::class,
         ConditionTag::class,
-        HabitCategoryDefinition::class],
+        HabitCategoryDefinition::class,
+    ],
     version = 1 //처음보는 문법임
 )
 
-abstract class AppDatabase : RoomDatabase(){ // 인터페이스랑의 차이가 뭐지?
+abstract class AppDatabase : RoomDatabase() { // 인터페이스랑의 차이가 뭐지?
     abstract fun habitRecordDao(): HabitRecordDao
     abstract fun habitDefinitionDao(): HabitDefinitionDao
     abstract fun conditionDefinitionDao(): ConditionDefinitionDao
