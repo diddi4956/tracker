@@ -11,5 +11,5 @@ data class ConditionDefinition(
     val conditionCategoryId: Long,
     // val type: Int, // 이거 bool로 하면 안되나 -> 일단 스펙트럼은...생략해봄 굳이 기록할때 과한 선택지같기도함 안쓸듯..
     val isActive: Boolean = true,
-    val frequency: Int
+    val frequency: Int = 0
 )
