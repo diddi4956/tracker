@@ -9,11 +9,12 @@ data class ItemDefinition(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val subCategoryId: Long, // 근데 생각해보니 서브는 있는데 그냥 익스펜스 데피니션은 안쓰나? 아 서브가 이미 갖고있구나!!
-    val name: String,
-    val unit: String? = null,
-    val kcalPerUnit: Int? = null,
-    val isDefault: Boolean = false, // 이건 왜 넣는거야
-    val isActive: Boolean = true // 얘도?
+    val name: String, // 겹치는거 만들 수 있음
+    val store: String? = null,
+    val kcalPerUnit: Long? = null,
+    val defaultPrice: Long,
+    val memo: String?,
+    val isActive: Boolean = true
     /*
     isDefault : 앱이 기본 제공하는 항목인지 여부. 사용자가 추가한것인지 기본 제공인지.
     isActive : 지금 사용중인지 여부 예전에 쓰던 항목인데 지금은 숨기고싶음 이런거. 삭제는 안하고 비활성화.

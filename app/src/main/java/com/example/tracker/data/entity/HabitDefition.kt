@@ -7,8 +7,9 @@ import androidx.room.PrimaryKey
 data class HabitDefinition(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val categoryId: Long,
     val name: String,
-    val isDefault: Boolean = false,
+    val importance: Int,
     val isActive: Boolean = true
 )
 // 근데 해빗도 카테고리가 필요하지 않을까 싶기도해..아니면 우선순위로 해야하나? 우선순위 키워드로 카테고리를 나누는거지.

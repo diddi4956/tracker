@@ -26,4 +26,7 @@ interface ItemDefinitionDao {
 
     @Query("SELECT * FROM item_definition WHERE isActive = :isActive")
     suspend fun getActiveItems(isActive:Boolean): List<ItemDefinition>
+
+    @Query("SELECT * FROM item_definition WHERE name LIKE '%' || :keyword || '%'")
+    suspend fun getByName(keyword: String): List<ItemDefinition>
 }

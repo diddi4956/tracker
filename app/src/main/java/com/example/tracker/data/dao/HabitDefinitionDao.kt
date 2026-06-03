@@ -24,4 +24,5 @@ interface HabitDefinitionDao {
 
     @Query("SELECT * FROM habit_definition WHERE isActive = :isActive")
     suspend fun getByIsActive(isActive: Boolean): List<HabitDefinition>
+
 }
