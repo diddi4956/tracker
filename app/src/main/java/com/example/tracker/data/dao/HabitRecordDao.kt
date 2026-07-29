@@ -75,6 +75,10 @@ interface HabitRecordDao {
     // 데일리 체크리스트는 dto를 두개 써야하나? -> 보여주기용 쿼리와 체크 변경용 쿼리는 다름. 보여주기쿼리는 상태변경(리코드 디비 변경)에 따라 ui가 리셋됨
     // 상태객체 : 내가 만든 dto/데이터를 컴포즈 상태 객체에 담는다 즉 상태 객체 자체는 컴포즈등에서 제공, 그 안에 들어가는 데이터는 내가 만든 dto
 
+
+    @Query("SELECT * FROM habit_record WHERE date = :date AND habitDefinitionId = :habitDefinitionId")
+    suspend fun findRecord(date: String, habitDefinitionId: Logn): HabitRecord
+    
     @Transaction
     suspend fun checkHabit(date: String, habitDefinitionId: Long){
         val existing = findRecord(date, habitDefinitionId)
