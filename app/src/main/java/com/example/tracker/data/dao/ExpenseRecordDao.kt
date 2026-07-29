@@ -50,7 +50,6 @@ interface ExpenseRecordDao {
     @Query("SELECT date, SUM(quantity*unitPrice) AS dailyTotalPrice FROM expense_record WHERE date BETWEEN :start AND :end GROUP BY date ORDER BY date ASC")
     suspend fun calcDailyExpense(start:String, end: String): List<ExpenseDailyPriceDto>
 
-    // 트랜잭션 추가
     // 같은 date + itemId +subCategoryId 기록이 있는지 조회
     // 있으면 quantity 증가해서 update
     // 없으면 insert

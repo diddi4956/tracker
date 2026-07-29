@@ -77,13 +77,13 @@ interface HabitRecordDao {
 
 
     @Query("SELECT * FROM habit_record WHERE date = :date AND habitDefinitionId = :habitDefinitionId")
-    suspend fun findRecord(date: String, habitDefinitionId: Logn): HabitRecord
+    suspend fun findRecord(date: String, habitDefinitionId: Long): HabitRecord?
     
     @Transaction
-    suspend fun checkHabit(date: String, habitDefinitionId: Long){
-        val existing = findRecord(date, habitDefinitionId)
+    suspend fun checkHabit(record: HabitRecord){
+        val existing = findRecord(record.date, record.habitDefinitionId)
         if(existing == null) {
-            insert(HabitRecord)
+            insert(record)
         }else{
             delete(existing)
         }

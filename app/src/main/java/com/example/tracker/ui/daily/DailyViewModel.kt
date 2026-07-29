@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tracker.data.dao.ConditionRecordDao
 import com.example.tracker.data.dao.ExpenseRecordDao
+import com.example.tracker.data.dao.HabitCategoryDefinitionDao
+import com.example.tracker.data.dao.HabitDefinitionDao
 import com.example.tracker.data.dao.HabitRecordDao
 import com.example.tracker.data.dao.ItemDefinitionDao
 import com.example.tracker.data.entity.ConditionDefinition
@@ -46,7 +48,9 @@ class DailyViewModel(
     private val expenseRecordDao: ExpenseRecordDao,
     private val habitRecordDao: HabitRecordDao,
     private val conditionRecordDao: ConditionRecordDao, // 변수이면서 생성자 매개변수.
-    private val itemDefinitionDao: ItemDefinitionDao
+    private val itemDefinitionDao: ItemDefinitionDao,
+    private val habitDefinitionDao: HabitDefinitionDao,
+    private val habitCategoryDefinitionDao: HabitCategoryDefinitionDao
     /*
     1.
         class DailyViewModel extends ViewModel {
@@ -158,9 +162,7 @@ class DailyViewModel(
     // 1. 체크
     fun checkingHabit(record: HabitRecord){
         viewModelScope.launch{
-            if()
-            habitRecordDao.insert(record)
-
+            habitRecordDao.checkHabit(record)
             loadDailyData()
         }
     }
@@ -168,7 +170,7 @@ class DailyViewModel(
     // 2. 해빗수정하기
     fun updateHabit(habitDefinition: HabitDefinition){
         viewModelScope.launch{
-
+            habitDefinitionDao.update(habitDefinition)
             loadDailyData()
         }
     }
@@ -176,6 +178,7 @@ class DailyViewModel(
     // 3. 해빗 추가하기
     fun addHabit(habitDefinition: HabitDefinition){
         viewModelScope.launch{
+            // 트랜잭션이 필요할듯? 기존에 있으면 추가가 불가능, 없으면 추가
             loadDailyData()
         }
     }
@@ -183,25 +186,31 @@ class DailyViewModel(
     // 4. 프로젝트 추가하기
     fun addProject(habitProject: HabitCategoryDefinition){
         viewModelScope.launch{
+            // 트랜잭션 필요
             loadDailyData()
         }
     }
 
     // 5. 프로젝트 수정하기
-    fun updateProject(habitCategory: HabitCategoryDefinition){
+    fun updateProject(project: HabitCategoryDefinition){
         viewModelScope.launch{
+            habitCategoryDefinitionDao.update(project)
             loadDailyData()
         }
     }
 
-    // 6. 삭제
+    // 6. 프로젝트 삭제
     fun deleteProject(project: HabitCategoryDefinition){
         viewModelScope.launch{
+            habitCategoryDefinitionDao.delete(project)
             loadDailyData()
         }
     }
+
+    // 7. 해빗(definition) 삭제
     fun deleteHabit(habit: HabitDefinition){
         viewModelScope.launch{
+            habitDefinitionDao.delete(habit)
             loadDailyData()
         }
     }
