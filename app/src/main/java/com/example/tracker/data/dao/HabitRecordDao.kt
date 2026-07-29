@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.tracker.data.dto.HabitGetCategoryListDto
 import com.example.tracker.data.dto.HabitGetDailyListDto
@@ -66,11 +67,22 @@ interface HabitRecordDao {
     suspend fun getMonthlyByCategory(categoryId: Long, start: String, end: String): List<HabitGetMonthlyByCategoryDto>
 
     // 데일리 체크리스트 -> 이걸 이렇게 해서 데일리 리스트를 만들어주고(만들때 프로젝트명(카테고리명)이나 우선순위가 필요한데 전부 데피니션에 있음...) 그 후에 리코드를 조작하는 식으로 해야하나 하나 참...어렵네
-    @Query("SELECT d.id AS id, d.categoryId AS categoryId, d.name AS name, c.name AS categoryName, r.id AS recordId, CASE WHEN r.id IS NULL THEN 0 ELSE 1 END AS checked " +
+    @Query("SELECT d.id AS id, d.categoryId AS categoryId, c.name AS categoryName, r.id AS recordId, CASE WHEN r.id IS NULL THEN 0 ELSE 1 END AS checked " +
             "FROM habit_definition d INNER JOIN habit_category AS c ON d.categoryId = c.id LEFT JOIN habit_record r ON d.id = r.habitDefinitionId AND r.date = :date " +
             "WHERE (c.startDate IS NULL OR c.startDate <= :date) AND (c.endDate IS NULL OR c.endDate >= :date) ORDER BY importance") // 리코드 없는 데피니션이 사라지면 안되기에 레프트조인
     suspend fun getDailyList(date:String): List<HabitGetDailyListDto>
     // startDate<= :date <=endDate 이거를 쿼리로 어케 쓰지? WHERE에 추가하고싶은데.
     // 데일리 체크리스트는 dto를 두개 써야하나? -> 보여주기용 쿼리와 체크 변경용 쿼리는 다름. 보여주기쿼리는 상태변경(리코드 디비 변경)에 따라 ui가 리셋됨
     // 상태객체 : 내가 만든 dto/데이터를 컴포즈 상태 객체에 담는다 즉 상태 객체 자체는 컴포즈등에서 제공, 그 안에 들어가는 데이터는 내가 만든 dto
+
+    @Transaction
+    suspend fun checkHabit(date: String, habitDefinitionId: Long){
+        val existing = findRecord(date, habitDefinitionId)
+        if(existing == null) {
+            insert(HabitRecord)
+        }else{
+            delete(existing)
+        }
+    }
+
 }

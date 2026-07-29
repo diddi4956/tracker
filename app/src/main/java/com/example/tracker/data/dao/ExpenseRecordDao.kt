@@ -23,6 +23,9 @@ interface ExpenseRecordDao {
     @Delete
     suspend fun delete(record: ExpenseRecord)
 
+    @Query("SELECT * FROM expense_record WHERE id = :expenseRecordId")
+    suspend fun getRecord(expenseRecordId: Long): ExpenseRecord
+
     @Query("SELECT * FROM expense_record")
     suspend fun getAll(): List<ExpenseRecord>
 

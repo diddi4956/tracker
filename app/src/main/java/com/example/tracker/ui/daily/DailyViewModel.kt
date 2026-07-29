@@ -1,0 +1,286 @@
+package com.example.tracker.ui.daily
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.tracker.data.dao.ConditionRecordDao
+import com.example.tracker.data.dao.ExpenseRecordDao
+import com.example.tracker.data.dao.HabitRecordDao
+import com.example.tracker.data.dao.ItemDefinitionDao
+import com.example.tracker.data.entity.ConditionDefinition
+import com.example.tracker.data.entity.ConditionDefinitionTag
+import com.example.tracker.data.entity.ConditionTag
+import com.example.tracker.data.entity.ExpenseRecord
+import com.example.tracker.data.entity.HabitCategoryDefinition
+import com.example.tracker.data.entity.HabitDefinition
+import com.example.tracker.data.entity.HabitRecord
+import com.example.tracker.data.entity.ItemDefinition
+import kotlinx.coroutines.launch
+
+/*
+1. AppDatabase에 Entity/DAO 등록 확인
+2. DAO 함수 반환 타입이 DTO인지 확인
+3. DailyViewModel 만들기
+4. DailyViewModel에서 DAO 호출해서 DTO를 상태 변수에 저장
+5. DailyPage가 ViewModel 상태를 읽도록 수정
+6. MainActivity에서 DB 만들고 ViewModel 만들어 DailyPage에 넘김
+
+viewModel : 필요한 데이터를 상태로 들고있고, ui행동에 따라 dao를 호출해서 그 상태를 갱신.
+즉 뷰모델은 상태를 전달하는 역할. 이 상태는 ui에의해 dao가 호출될때 갱신됨.
+-> 이 화면에 바로 보여야하는 데이터인가? 버튼을 누르면 바뀌고 화면이 다시 그려져야하는가?
+-> 현재 화면에 필요한 dao결과만 상태로 감쌈.
+변경되는 순간 바로 화면에 반영되어야할것들 = 상태객체로 감싸야함 => 뷰모델에 등록(?)
+
+1. 필요한 것 가져오기(dao) : private val conditionDao: ConditionRecordDao
+2. 상태 저장(State) : var conditions by mutableStateOf(...) : 화면이 볼 데이터 저장 -> db호출하면 빈 배열 등 이던게 채워지는거임
+3. 행동처리(Function) : fun loadConditions() {
+    viewModelScope.launch {
+        conditions = conditionDao.getDailyList(...)
+    }
+} dao 호출, db 읽기, state 갱신 역할을 함
+*/
+
+class DailyViewModel(
+    private val expenseRecordDao: ExpenseRecordDao,
+    private val habitRecordDao: HabitRecordDao,
+    private val conditionRecordDao: ConditionRecordDao, // 변수이면서 생성자 매개변수.
+    private val itemDefinitionDao: ItemDefinitionDao
+    /*
+    1.
+        class DailyViewModel extends ViewModel {
+            private final ExpenseRecordDao expenseRecordDao; // final은 반드시 생성될 때 한번 초기화되어야 한다.
+            public DailyViewModel(ExpenseRecordDao expenseRecordDao){
+                this.expenseRecordDao = expenseRecordDao;
+            }
+        }
+
+    2. 그러면 DI(또는 ViewModelFactory)가
+    그 객체를 넣어준다.
+
+    3. 나는 받은 객체만 사용하면 된다.
+     */
+): ViewModel(){
+    // state
+
+    /*
+    "var age = 20
+        private set"
+    은
+    "fun getAge() // public
+    private fun setAge()" 과 같다. 코틀린 문법이고, 아래거를 생략해주는거임. 프로퍼티선언 + getter + setter를 한꺼번에 쓰는 문법.
+     */
+
+    // 제네릭: 함수 설계시, 매개변수의 타입을 지정하지 않음. 자바로치면, 오버라이드 함수이름은 같아도 매개변수가 다르면 다른함수가 되므로 다양한 타입의 매개변수를 받으면서 같은 펑션을 쓰고싶은경우 열심히 생성읋 해야한다는 단점을 극복함.
+    var  dailyUiState by mutableStateOf(DailyUiState()) // 기본값이 없는것들이 있어서 에러라나
+        private set // val이면 이게 안되네 변수인건가 setter의 접근권한을 바꾸는거 val 은 읽기전용으로 getter만 있다?라던가? 뭘까?
+
+    // function
+
+    // 1. DB에서 선택 날짜의 지출 기록을 가져옴
+    fun loadDailyData(){
+        viewModelScope.launch { // DAO함수가 suspend fun이면 그냥 호출 못하고 코루틴안에서 해야하므로 하는것.
+            // Android Jetpack의 ViewModel 라이브러리가 제공하는 것
+            // 1. 지출 조회
+            val expenseRecords = expenseRecordDao.getByDate(dailyUiState.date) // List<ExpenseRecord>
+
+            // 2. 해빗 조회
+            val habitRecord = habitRecordDao.getDailyList(dailyUiState.date) // List<HabitGetDailyListDto>
+            // 3. 컨디션 조회
+            val conditionRecord = conditionRecordDao.getDailyList((dailyUiState.date), ) // tagIds리스트 들어가야함. List<ConditionGetDailyListDto>
+
+            // 4. dto -> UiState 변환
+            // 5. dailyUiState 갱신
+        }
+    }
+
+    // 2. 지출내역 추가. 근데 카테고리별로 다 다른데 그럼 버튼이 다섯개여야하나?
+    fun addExpenseRecord(record: ExpenseRecord){
+        viewModelScope.launch{
+            expenseRecordDao.insert(record)
+            loadDailyData()
+        }
+    }
+
+    // 3. 지출내역 수정. 이거는 아마 리코드아이디를 받아서 해야할듯
+    fun updateExpenseRecord(record: ExpenseRecord){
+        viewModelScope.launch{
+            expenseRecordDao.addExpenseRecord(expenseRecordDao.getRecord(record.id))
+            //  @Query("SELECT * FROM expense_record WHERE id = :expenseRecordId")
+            //    suspend fun getRecord(expenseRecordId: Long): ExpenseRecord쿼리가 이런데 *가 반환인데 괜찮나
+            loadDailyData()
+        }
+    }
+
+    // 4. 리코드 삭제
+    fun deleteExpenseRecord(record: ExpenseRecord){
+        viewModelScope.launch{
+            expenseRecordDao.delete(record)
+            loadDailyData()
+        }
+    } //이래야하나?
+
+    // 5. 아이템검색
+    fun searchItems(itemName: String){
+        viewModelScope.launch{
+            itemDefinitionDao.getByName(itemName)
+            loadDailyData()
+        }
+    }
+
+    // 6. 아이템 추가
+    fun addItem(item: ItemDefinition){
+        viewModelScope.launch{
+            itemDefinitionDao.insert(item) //근데 이거 앞에 트랜잭션한거처럼 해야하나? 지출에서 트랜잭션한거처럼...
+            loadDailyData()
+        }
+    }
+
+    // 7. 아이템 수정
+    fun updateItem(item: ItemDefinition){
+        viewModelScope.launch{
+            itemDefinitionDao.update(item)
+            loadDailyData()
+        }
+    } // 이게 나으려나? 아님 itemId를 받아야하나
+
+    // 8. 삭제
+    fun deleteItem(item: ItemDefinition){
+        viewModelScope.launch{
+            itemDefinitionDao.delete(item)
+            loadDailyData()
+        }
+    }
+
+
+    // 해빗 입력하기
+    // 1. 체크
+    fun checkingHabit(record: HabitRecord){
+        viewModelScope.launch{
+            if()
+            habitRecordDao.insert(record)
+
+            loadDailyData()
+        }
+    }
+
+    // 2. 해빗수정하기
+    fun updateHabit(habitDefinition: HabitDefinition){
+        viewModelScope.launch{
+
+            loadDailyData()
+        }
+    }
+
+    // 3. 해빗 추가하기
+    fun addHabit(habitDefinition: HabitDefinition){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 4. 프로젝트 추가하기
+    fun addProject(habitProject: HabitCategoryDefinition){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 5. 프로젝트 수정하기
+    fun updateProject(habitCategory: HabitCategoryDefinition){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 6. 삭제
+    fun deleteProject(project: HabitCategoryDefinition){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+    fun deleteHabit(habit: HabitDefinition){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+
+    // condition
+    // 1. 검색창
+    fun searchCondition(string: String){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 2.
+    fun addCondition(condition: ConditionDefinition){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 3.
+    fun updateCondition(condition: ConditionDefinition){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 4. 태그연결하기(데피니션에서 태그 선택해서 추가하기) conditionDefinitionId를 사용하여 relation만듦
+    fun addTagToDefinition(conditionDefinitionId: Long){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 5. 태그연결하기(태그에서 컨디션 추가하기)
+    fun addDefinitionToTag(tagDefinitionId: Long){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 6. 태그 검색하기
+    fun searchTag(string: String){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 7. 태그 추가하기
+    fun addTag(tag: ConditionTag){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 8. 태그 수정하기
+    fun updateTag(tag: ConditionTag){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+
+    // 9. 삭제. 태그랑 컨디션 데피니션 삭제
+    fun deleteTag(tag: ConditionTag){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+    fun deleteConditionDefinition(condition:ConditionDefinition){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    }
+    fun deleteRelation(relation: ConditionDefinitionTag){
+        viewModelScope.launch{
+            loadDailyData()
+        }
+    } // 이게 있어야하나?
+
+
+}
+// launch가 왜 suspend 함수를 실행할 수 있는지

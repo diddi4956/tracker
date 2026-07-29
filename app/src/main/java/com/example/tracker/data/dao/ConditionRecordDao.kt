@@ -81,7 +81,7 @@ interface ConditionRecordDao {
 
     // 데일리 체크리스트 -> /dto 수정필요
     @Query(
-        "SELECT d.id AS id, t.id AS tagId, d.name AS name, t.name AS tagName, CASE WHEN r.id IS NULL THEN 0 ELSE 1 END AS checked " +
+        "SELECT d.id AS id, t.id AS tagId, d.name AS name,  CASE WHEN r.id IS NULL THEN 0 ELSE 1 END AS checked " +
                 "FROM condition_tag AS t INNER JOIN condition_definition_tag AS dt ON t.id = dt.tagId INNER JOIN condition_definition AS d ON dt.conditionDefinitionId = d.id LEFT JOIN condition_record AS r ON d.id = r.conditionDefinitionId AND r.date = :date " + //그 조건을 조인할때 부를지 조인하고 최종 디비에서 부를지의 차이
                 "WHERE t.id IN (:tagIds) " +
                 "ORDER BY t.name, d.name"

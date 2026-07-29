@@ -10,5 +10,5 @@ data class HabitRecord(
     val id: Long = 0,
     val date: String, //
     val habitDefinitionId: Long, //
-    // val checked: Boolean
+    val checked: Boolean
 )
