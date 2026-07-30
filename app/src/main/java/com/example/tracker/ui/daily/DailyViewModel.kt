@@ -178,7 +178,7 @@ class DailyViewModel(
     // 3. 해빗 추가하기
     fun addHabit(habitDefinition: HabitDefinition){
         viewModelScope.launch{
-            // 트랜잭션이 필요할듯? 기존에 있으면 추가가 불가능, 없으면 추가
+            habitDefinitionDao.addHabit(habitDefinition)
             loadDailyData()
         }
     }
@@ -186,7 +186,7 @@ class DailyViewModel(
     // 4. 프로젝트 추가하기
     fun addProject(habitProject: HabitCategoryDefinition){
         viewModelScope.launch{
-            // 트랜잭션 필요
+            habitCategoryDefinitionDao.addHabitProject(habitProject)
             loadDailyData()
         }
     }
@@ -220,6 +220,7 @@ class DailyViewModel(
     // 1. 검색창
     fun searchCondition(string: String){
         viewModelScope.launch{
+            // getByName 함수를 ConditionDefinitionDao에다가 만들어야할듯?
             loadDailyData()
         }
     }

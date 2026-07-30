@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.tracker.data.entity.HabitDefinition
 
@@ -25,4 +26,16 @@ interface HabitDefinitionDao {
     @Query("SELECT * FROM habit_definition WHERE isActive = :isActive")
     suspend fun getByIsActive(isActive: Boolean): List<HabitDefinition>
 
+    @Query("SELECT * FROM habit_definition WHERE id = :habitDefinitionId")
+    suspend fun findDefinition(habitDefinitionId: Long): HabitDefinition?
+
+    @Transaction
+    suspend fun addHabit(def: HabitDefinition){
+        val existing = findDefinition(def.id)
+        if(existing == null) {
+            insert(def)
+        }else{
+            // 이미 있다고 알림보내기
+        }
+    }
 }
