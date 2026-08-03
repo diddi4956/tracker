@@ -21,8 +21,8 @@ interface ConditionDefinitionDao {
     @Insert
     suspend fun insertDefinitionTag(relation: List<ConditionDefinitionTag>)
 
-    // @Update
-    //    suspend fun updateDefinition(condition: ConditionDefinition) 딴데있음
+    @Update
+    suspend fun updateDefinition(condition: ConditionDefinition)
 
     @Update
     suspend fun updateTag(tag: ConditionTag)
@@ -44,6 +44,12 @@ interface ConditionDefinitionDao {
 
     @Query("SELECT * FROM condition_definition WHERE isActive = 1")
     suspend fun getActiveCondition(): List<ConditionDefinition>
+
+    @Query("SELECT * FROM condition_definition WHERE name = :name")
+    suspend fun getByName(name: String):List<ConditionDefinition>
+
+    @Query("SELECT * FROM condition_tag WHERE name = :name")
+    suspend fun getByTagName(name: String): List<ConditionTag>
 
     @Transaction // 태그가 없는 데피니션 생성 불가
     suspend fun insertDefinitionWithTag(definition: ConditionDefinition, tagIds: List<Long>){

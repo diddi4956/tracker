@@ -5,12 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tracker.data.dao.ConditionDefinitionDao
 import com.example.tracker.data.dao.ConditionRecordDao
 import com.example.tracker.data.dao.ExpenseRecordDao
 import com.example.tracker.data.dao.HabitCategoryDefinitionDao
 import com.example.tracker.data.dao.HabitDefinitionDao
 import com.example.tracker.data.dao.HabitRecordDao
 import com.example.tracker.data.dao.ItemDefinitionDao
+import com.example.tracker.data.entity.ConditionCheckRecord
 import com.example.tracker.data.entity.ConditionDefinition
 import com.example.tracker.data.entity.ConditionDefinitionTag
 import com.example.tracker.data.entity.ConditionTag
@@ -50,7 +52,8 @@ class DailyViewModel(
     private val conditionRecordDao: ConditionRecordDao, // 변수이면서 생성자 매개변수.
     private val itemDefinitionDao: ItemDefinitionDao,
     private val habitDefinitionDao: HabitDefinitionDao,
-    private val habitCategoryDefinitionDao: HabitCategoryDefinitionDao
+    private val habitCategoryDefinitionDao: HabitCategoryDefinitionDao,
+    private val conditionDefinitionDao: ConditionDefinitionDao
     /*
     1.
         class DailyViewModel extends ViewModel {
@@ -178,7 +181,7 @@ class DailyViewModel(
     // 3. 해빗 추가하기
     fun addHabit(habitDefinition: HabitDefinition){
         viewModelScope.launch{
-            habitDefinitionDao.addHabit(habitDefinition)
+            habitDefinitionDao.addHabit(habitDefinition) //  트랜잭션 아직 덜함
             loadDailyData()
         }
     }
@@ -186,7 +189,7 @@ class DailyViewModel(
     // 4. 프로젝트 추가하기
     fun addProject(habitProject: HabitCategoryDefinition){
         viewModelScope.launch{
-            habitCategoryDefinitionDao.addHabitProject(habitProject)
+            habitCategoryDefinitionDao.addHabitProject(habitProject) // 트랜잭션 아직 덜함
             loadDailyData()
         }
     }
@@ -217,17 +220,25 @@ class DailyViewModel(
 
 
     // condition
+    // 체크
+    fun checkCondition(record: ConditionCheckRecord){
+        viewModelScope.launch{
+            conditionRecordDao.checkingRecordAndDefinitionFrequency(record)
+            loadDailyData()
+        }
+    }
     // 1. 검색창
     fun searchCondition(string: String){
         viewModelScope.launch{
-            // getByName 함수를 ConditionDefinitionDao에다가 만들어야할듯?
+            conditionDefinitionDao.getByName(string)
             loadDailyData()
         }
     }
 
     // 2.
-    fun addCondition(condition: ConditionDefinition){
+    fun addConditionDefinition(condition: ConditionDefinition, tagIds:List<Long>){
         viewModelScope.launch{
+            conditionDefinitionDao.insertDefinitionWithTag(condition, tagIds)
             loadDailyData()
         }
     }
@@ -235,20 +246,33 @@ class DailyViewModel(
     // 3.
     fun updateCondition(condition: ConditionDefinition){
         viewModelScope.launch{
+            conditionDefinitionDao.updateDefinition(condition)
             loadDailyData()
         }
     }
 
     // 4. 태그연결하기(데피니션에서 태그 선택해서 추가하기) conditionDefinitionId를 사용하여 relation만듦
-    fun addTagToDefinition(conditionDefinitionId: Long){
+    fun addTagToDefinition(conditionDefinition: ConditionDefinition, conditionTagIds: List<Long>){
         viewModelScope.launch{
+            val relations = conditionTagIds.map { conditionTagId ->
+                ConditionDefinitionTag(
+                    conditionDefinitionId = conditionDefinition.id,
+                    tagId = conditionTagId
+                )
+            }
+            conditionDefinitionDao.insertDefinitionTag(relations)
             loadDailyData()
         }
     }
 
     // 5. 태그연결하기(태그에서 컨디션 추가하기)
-    fun addDefinitionToTag(tagDefinitionId: Long){
+    fun addDefinitionToTag(conditionTag: ConditionTag, conditionDefinitionIds:List<Long>){
         viewModelScope.launch{
+            val relations = conditionDefinitionIds.map{definitionId -> ConditionDefinitionTag(
+                conditionDefinitionId = definitionId,
+                tagId = conditionTag.id)
+            }
+            conditionDefinitionDao.insertDefinitionTag(relations)
             loadDailyData()
         }
     }
@@ -256,6 +280,7 @@ class DailyViewModel(
     // 6. 태그 검색하기
     fun searchTag(string: String){
         viewModelScope.launch{
+            conditionDefinitionDao.getByTagName(string)
             loadDailyData()
         }
     }
@@ -263,6 +288,7 @@ class DailyViewModel(
     // 7. 태그 추가하기
     fun addTag(tag: ConditionTag){
         viewModelScope.launch{
+            conditionDefinitionDao.insertTag(tag) // 근데 태그는 데피니션이 필수가 아닌가? 굳이인가보당 하긴
             loadDailyData()
         }
     }
@@ -270,6 +296,7 @@ class DailyViewModel(
     // 8. 태그 수정하기
     fun updateTag(tag: ConditionTag){
         viewModelScope.launch{
+            conditionDefinitionDao.updateTag(tag)
             loadDailyData()
         }
     }
@@ -277,19 +304,22 @@ class DailyViewModel(
     // 9. 삭제. 태그랑 컨디션 데피니션 삭제
     fun deleteTag(tag: ConditionTag){
         viewModelScope.launch{
+            conditionDefinitionDao.deleteRelationByTag(tag)
             loadDailyData()
         }
     }
     fun deleteConditionDefinition(condition:ConditionDefinition){
         viewModelScope.launch{
+            conditionDefinitionDao.deleteRelationByDefinition(condition)
             loadDailyData()
         }
     }
     fun deleteRelation(relation: ConditionDefinitionTag){
-        viewModelScope.launch{
+        viewModelScope.launch {
+
             loadDailyData()
         }
-    } // 이게 있어야하나?
+    }// 이거는 어떨때 쓰이려나...이것도 어디서 만드는지를 해야할거같은데...5번에서 트랜잭션으로 관계가 있으면 다르게 관계가 없으면 만들기 이렇게 해야할듯?
 
 
 }
