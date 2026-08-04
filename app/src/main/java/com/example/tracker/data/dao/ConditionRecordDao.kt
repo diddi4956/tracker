@@ -112,7 +112,7 @@ interface ConditionRecordDao {
             insert(record)
             updateDefinition(definition.copy(frequency = definition.frequency + 1))
         } else {
-            deleteRecordById(record.id)
+            deleteRecordById(existing.id)
             updateDefinition(definition.copy(frequency = definition.frequency - 1))
         }
     }

@@ -37,7 +37,7 @@ interface ConditionDefinitionDao {
     suspend fun deleteTag(tag: ConditionTag)
 
     @Delete
-    suspend fun deleteConditionTag(relation: ConditionDefinitionTag)
+    suspend fun deleteRelation(relation: ConditionDefinitionTag)
 
     @Query("SELECT * FROM condition_definition")
     suspend fun getAll(): List<ConditionDefinition>

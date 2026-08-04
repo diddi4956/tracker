@@ -3,13 +3,13 @@ package com.example.tracker.data.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "condition_definition_tag")
+@Entity(tableName = "condition_definition_tag", primaryKeys = ["conditionDefinitionId", "tagId"])
 
 data class ConditionDefinitionTag(
 
-    @PrimaryKey(autoGenerate = true)
+    //@PrimaryKey(autoGenerate = true)
 
-    val id: Long = 0,
+    //val id: Long = 0,
 
     val conditionDefinitionId: Long,
 

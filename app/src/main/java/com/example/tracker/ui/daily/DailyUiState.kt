@@ -13,23 +13,23 @@ data class DailyUiState(
     // expense
     val expenses: List<ExpenseCategory> = emptyList(),
 
-    val updateRecord: UpdateRecord?,
+    val updateRecord: UpdateRecord? = null,
     val itemList: List<String>, // item list
 
-    val updateItem: ItemDefinition?,
+    val updateItem: ItemDefinition? = null,
 
     // habit
     val habits: List<HabitCategory> = emptyList(),
 
-    val updateHabitCategory: HabitCategoryDefinition?,
-    val updateHabit: HabitDefinition?,
+    val updateHabitCategory: HabitCategoryDefinition? = null,
+    val updateHabit: HabitDefinition? = null,
 
     // condition
     val conditions: List<ConditionDailyListByTag> = emptyList(),
     val conditionSearchText: String = "", // 어 이렇게 하는게 맞는건가? 리스트들이 떠야하는데///
     //val conditionSearchText: List<String> 이렇게 아닌가? 이것은 혹시 몰라 만들어둔 검색창으로 쓰기.
-    val updateConditionDefinition: ConditionDefinition?,
-    val updateConditionTag: ConditionTag?,
+    val updateConditionDefinition: ConditionDefinition? = null,
+    val updateConditionTag: ConditionTag? = null, // 기본값이 없으면 DailyUiState()라고 빈 초기 상태를 기본기없이 만들수가 없음 아 이게 지금 생성자라서 그런가
     //
     val isLoading: Boolean = false
 )

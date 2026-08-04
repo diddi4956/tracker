@@ -62,11 +62,12 @@ class DailyViewModel(
                 this.expenseRecordDao = expenseRecordDao;
             }
         }
-
+    -> 생성자에 변수를 넣으면 객체를 만드는 순간 값이 정해짐 바로 완성된 객체를 생성함. 반대로 클래스 내부에 선언하면 일단 빈 객체를 만든 후 값을 변경하게 됨
     2. 그러면 DI(또는 ViewModelFactory)가
     그 객체를 넣어준다.
 
     3. 나는 받은 객체만 사용하면 된다.
+    => compose는 완성된 상태 객체를 만들고 copy()로 교체하는 방식이라서.
      */
 ): ViewModel(){
     // state
@@ -93,7 +94,9 @@ class DailyViewModel(
             val expenseRecords = expenseRecordDao.getByDate(dailyUiState.date) // List<ExpenseRecord>
 
             // 2. 해빗 조회
-            val habitRecord = habitRecordDao.getDailyList(dailyUiState.date) // List<HabitGetDailyListDto>
+            val habitRecords = habitRecordDao.getDailyList(dailyUiState.date) // List<HabitGetDailyListDto> 1. DAO결과 받기
+            val habitCategories = habitRecords.groupBy{habit -> habit.categoryName}.map{(categoryName, habitList) -> HabitCategory(categoryName = categoryName, habitList = habitList)} // 2. 카테고리별로 변환하기
+            dailyUiState = dailyUiState.copy(habits = habitCategories) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
             // 3. 컨디션 조회
             val conditionRecord = conditionRecordDao.getDailyList((dailyUiState.date), ) // tagIds리스트 들어가야함. List<ConditionGetDailyListDto>
 
@@ -316,10 +319,10 @@ class DailyViewModel(
     }
     fun deleteRelation(relation: ConditionDefinitionTag){
         viewModelScope.launch {
-
+            conditionDefinitionDao.deleteRelation(relation)
             loadDailyData()
         }
-    }// 이거는 어떨때 쓰이려나...이것도 어디서 만드는지를 해야할거같은데...5번에서 트랜잭션으로 관계가 있으면 다르게 관계가 없으면 만들기 이렇게 해야할듯?
+    }// 트랜잭션으로 중복예방이 아닌 unique 키 추가 -> unique보다는 relation의 id를 사용할일이 없으니 복합주키로 만들어 중복예방
 
 
 }
