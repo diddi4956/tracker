@@ -94,9 +94,11 @@ class DailyViewModel(
             val expenseRecords = expenseRecordDao.getByDate(dailyUiState.date) // List<ExpenseRecord>
 
             // 2. 해빗 조회
+            // habits
             val habitRecords = habitRecordDao.getDailyList(dailyUiState.date) // List<HabitGetDailyListDto> 1. DAO결과 받기
             val habitCategories = habitRecords.groupBy{habit -> habit.categoryName}.map{(categoryName, habitList) -> HabitCategory(categoryName = categoryName, habitList = habitList)} // 2. 카테고리별로 변환하기
             dailyUiState = dailyUiState.copy(habits = habitCategories) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
+
             // 3. 컨디션 조회
             val conditionRecord = conditionRecordDao.getDailyList((dailyUiState.date), ) // tagIds리스트 들어가야함. List<ConditionGetDailyListDto>
 
@@ -174,36 +176,42 @@ class DailyViewModel(
     }
 
     // 2. 해빗수정하기
-    fun updateHabit(habitDefinition: HabitDefinition){
+//    fun updateHabit(habitDefinition: HabitDefinition){
+//        viewModelScope.launch{
+//            habitDefinitionDao.update(habitDefinition)
+//            loadDailyData()
+//        }
+//    }
+
+    // 3. 해빗 추가/수정하기(저장버튼 눌렀을시) 버튼 -> state변경(팝업 등) -> UI변경(컴포즈역할) -> 저장버튼 -> db변경(이때 기존에 있는지도 판단)
+    fun editHabit(habitDefinition: HabitDefinition){
         viewModelScope.launch{
-            habitDefinitionDao.update(habitDefinition)
+            habitDefinitionDao.editHabit(habitDefinition)
             loadDailyData()
         }
     }
-
-    // 3. 해빗 추가하기
-    fun addHabit(habitDefinition: HabitDefinition){
+    fun loadEditHabit(habitId: Long){ // 해빗 추가 혹은 수정을 눌렀을 때 팝업창 채워줌
         viewModelScope.launch{
-            habitDefinitionDao.addHabit(habitDefinition) //  트랜잭션 아직 덜함
-            loadDailyData()
+            val definition = habitDefinitionDao.findDefinition(habitId)
+            dailyUiState = dailyUiState.copy(updateHabit = definition)
         }
     }
 
-    // 4. 프로젝트 추가하기
-    fun addProject(habitProject: HabitCategoryDefinition){
+    // 4. 프로젝트 추가/수정하기
+    fun editProject(habitProject: HabitCategoryDefinition){
         viewModelScope.launch{
-            habitCategoryDefinitionDao.addHabitProject(habitProject) // 트랜잭션 아직 덜함
+            habitCategoryDefinitionDao.editHabitProject(habitProject) // 트랜잭션 아직 덜함
             loadDailyData()
         }
     }
 
     // 5. 프로젝트 수정하기
-    fun updateProject(project: HabitCategoryDefinition){
-        viewModelScope.launch{
-            habitCategoryDefinitionDao.update(project)
-            loadDailyData()
-        }
-    }
+//    fun updateProject(project: HabitCategoryDefinition){
+//        viewModelScope.launch{
+//            habitCategoryDefinitionDao.update(project)
+//            loadDailyData()
+//        }
+//    }
 
     // 6. 프로젝트 삭제
     fun deleteProject(project: HabitCategoryDefinition){

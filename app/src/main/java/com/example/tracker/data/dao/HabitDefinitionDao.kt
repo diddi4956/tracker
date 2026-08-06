@@ -30,12 +30,12 @@ interface HabitDefinitionDao {
     suspend fun findDefinition(habitDefinitionId: Long): HabitDefinition?
 
     @Transaction
-    suspend fun addHabit(def: HabitDefinition){
+    suspend fun editHabit(def: HabitDefinition) {
         val existing = findDefinition(def.id)
-        if(existing == null) {
+        if (existing == null) {
             insert(def)
-        }else{
-            // 이미 있다고 알림보내기
+        } else {
+            update(def)
         }
     }
 }

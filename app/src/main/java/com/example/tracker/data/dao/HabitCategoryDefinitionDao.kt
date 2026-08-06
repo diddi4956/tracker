@@ -26,12 +26,12 @@ interface HabitCategoryDefinitionDao {
     suspend fun findHabitProject(habitCategoryId: Long): HabitCategoryDefinition?
 
     @Transaction
-    suspend fun addHabitProject(habitProject: HabitCategoryDefinition){
+    suspend fun editHabitProject(habitProject: HabitCategoryDefinition){
         val existing = findHabitProject(habitProject.id)
         if(existing == null) {
             insert(habitProject)
         }else{
-            // 이미 있다고 보내기
+            update(habitProject)
         }
     }
 }
