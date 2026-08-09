@@ -50,10 +50,15 @@ data class ExpenseCategory(
 
 data class UpdateRecord(
     val itemName: String, // 근데 이거 검색해서 주루룩 나오게 하는건데 그럼 이것도 리스트가 필요한 영역인가?
+    val itemId: Long,
     val subCategoryName: String,
-    val unitPrice: Int,
+    val subCategoryId: Long,
+    val unitPrice: Long,
     val quantity: Int
+    // State에는 화면에 직접 안 보이는 값이 있어도 돼. State는 “화면에 글자로 출력할 값 목록”이 아니라 현재 UI가 동작하기 위해 필요한 데이터 전체라고 보면 돼.
 )
+
+
 
 data class HabitCategory(
     val categoryName: String,

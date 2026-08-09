@@ -29,4 +29,7 @@ interface ItemDefinitionDao {
 
     @Query("SELECT * FROM item_definition WHERE name LIKE '%' || :keyword || '%'")
     suspend fun getByName(keyword: String): List<ItemDefinition>
+
+    @Query("SELECT name FROM item_definition WHERE id = :id")
+    suspend fun getNameById(id: Long): String
 }

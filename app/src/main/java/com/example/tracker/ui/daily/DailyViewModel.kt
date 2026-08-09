@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.tracker.data.dao.ConditionDefinitionDao
 import com.example.tracker.data.dao.ConditionRecordDao
 import com.example.tracker.data.dao.ExpenseRecordDao
+import com.example.tracker.data.dao.ExpenseSubCategoryDao
 import com.example.tracker.data.dao.HabitCategoryDefinitionDao
 import com.example.tracker.data.dao.HabitDefinitionDao
 import com.example.tracker.data.dao.HabitRecordDao
@@ -53,7 +54,8 @@ class DailyViewModel(
     private val itemDefinitionDao: ItemDefinitionDao,
     private val habitDefinitionDao: HabitDefinitionDao,
     private val habitCategoryDefinitionDao: HabitCategoryDefinitionDao,
-    private val conditionDefinitionDao: ConditionDefinitionDao
+    private val conditionDefinitionDao: ConditionDefinitionDao,
+    private val expenseSubCategoryDao: ExpenseSubCategoryDao
     /*
     1.
         class DailyViewModel extends ViewModel {
@@ -119,9 +121,19 @@ class DailyViewModel(
     fun updateExpenseRecord(record: ExpenseRecord){
         viewModelScope.launch{
             expenseRecordDao.addExpenseRecord(expenseRecordDao.getRecord(record.id))
-            //  @Query("SELECT * FROM expense_record WHERE id = :expenseRecordId")
-            //    suspend fun getRecord(expenseRecordId: Long): ExpenseRecord쿼리가 이런데 *가 반환인데 괜찮나
+
             loadDailyData()
+        }
+    }
+
+    fun loadExpenseRecord(recordId: Long){
+        viewModelScope.launch{
+            val record = expenseRecordDao.getRecord(recordId)
+            val itemName = itemDefinitionDao.getNameById(record.itemId)
+            val subCategoryName = expenseSubCategoryDao.getNameById(record.subCategoryId)
+            val updateRecord = UpdateRecord(itemName, record.itemId, subCategoryName, record.subCategoryId, record.unitPrice, record.quantity)
+            // 쿼리를 조인으로 묶는다 쿼리 다시 짜기...ㅠㅠ
+            dailyUiState = dailyUiState.copy(updateRecord = updateRecord)
         }
     }
 
@@ -184,9 +196,16 @@ class DailyViewModel(
 //    }
 
     // 3. 해빗 추가/수정하기(저장버튼 눌렀을시) 버튼 -> state변경(팝업 등) -> UI변경(컴포즈역할) -> 저장버튼 -> db변경(이때 기존에 있는지도 판단)
-    fun editHabit(habitDefinition: HabitDefinition){
+    fun updateHabit(habitDefinition: HabitDefinition){
         viewModelScope.launch{
-            habitDefinitionDao.editHabit(habitDefinition)
+            habitDefinitionDao.update(habitDefinition)
+            loadDailyData()
+        }
+    }
+
+    fun addHabit(habitDefinition: HabitDefinition){
+        viewModelScope.launch{
+            habitDefinitionDao.insert(habitDefinition)
             loadDailyData()
         }
     }
@@ -198,20 +217,27 @@ class DailyViewModel(
     }
 
     // 4. 프로젝트 추가/수정하기
-    fun editProject(habitProject: HabitCategoryDefinition){
+    fun addProject(habitProject: HabitCategoryDefinition){
         viewModelScope.launch{
-            habitCategoryDefinitionDao.editHabitProject(habitProject) // 트랜잭션 아직 덜함
+            habitCategoryDefinitionDao.insert(habitProject) // 트랜잭션 아직 덜함
             loadDailyData()
         }
     }
 
     // 5. 프로젝트 수정하기
-//    fun updateProject(project: HabitCategoryDefinition){
-//        viewModelScope.launch{
-//            habitCategoryDefinitionDao.update(project)
-//            loadDailyData()
-//        }
-//    }
+    fun updateProject(project: HabitCategoryDefinition){
+        viewModelScope.launch{
+            habitCategoryDefinitionDao.update(project)
+            loadDailyData()
+        }
+    }
+
+    fun loadHabitProject(projectId: Long){
+        viewModelScope.launch{
+            val habitProject = habitCategoryDefinitionDao.findHabitProject(projectId)
+            dailyUiState = dailyUiState.copy(updateHabitCategory = habitProject)
+        }
+    }
 
     // 6. 프로젝트 삭제
     fun deleteProject(project: HabitCategoryDefinition){

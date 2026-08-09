@@ -29,13 +29,4 @@ interface HabitDefinitionDao {
     @Query("SELECT * FROM habit_definition WHERE id = :habitDefinitionId")
     suspend fun findDefinition(habitDefinitionId: Long): HabitDefinition?
 
-    @Transaction
-    suspend fun editHabit(def: HabitDefinition) {
-        val existing = findDefinition(def.id)
-        if (existing == null) {
-            insert(def)
-        } else {
-            update(def)
-        }
-    }
 }

@@ -25,13 +25,4 @@ interface HabitCategoryDefinitionDao {
     @Query("SELECT * FROM habit_category WHERE id = :habitCategoryId")
     suspend fun findHabitProject(habitCategoryId: Long): HabitCategoryDefinition?
 
-    @Transaction
-    suspend fun editHabitProject(habitProject: HabitCategoryDefinition){
-        val existing = findHabitProject(habitProject.id)
-        if(existing == null) {
-            insert(habitProject)
-        }else{
-            update(habitProject)
-        }
-    }
 }

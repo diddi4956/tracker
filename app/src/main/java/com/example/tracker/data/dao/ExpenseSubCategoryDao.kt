@@ -27,4 +27,7 @@ interface ExpenseSubCategoryDao {
 
     @Query("SELECT * FROM expense_subcategory_definition WHERE isActive = :isActive")
     suspend fun getActiveSubCategories(isActive:Boolean): List<ExpenseSubCategoryDefinition>
+
+    @Query("SELECT name FROM expense_subcategory_definition WHERE id = :id")
+    suspend fun getNameById(id: Long):String
 }
