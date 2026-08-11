@@ -47,7 +47,7 @@ viewModel : 필요한 데이터를 상태로 들고있고, ui행동에 따라 da
 } dao 호출, db 읽기, state 갱신 역할을 함
 */
 
-class DailyViewModel(
+class  DailyViewModel(
     private val expenseRecordDao: ExpenseRecordDao,
     private val habitRecordDao: HabitRecordDao,
     private val conditionRecordDao: ConditionRecordDao, // 변수이면서 생성자 매개변수.
@@ -128,11 +128,7 @@ class DailyViewModel(
 
     fun loadExpenseRecord(recordId: Long){
         viewModelScope.launch{
-            val record = expenseRecordDao.getRecord(recordId)
-            val itemName = itemDefinitionDao.getNameById(record.itemId)
-            val subCategoryName = expenseSubCategoryDao.getNameById(record.subCategoryId)
-            val updateRecord = UpdateRecord(itemName, record.itemId, subCategoryName, record.subCategoryId, record.unitPrice, record.quantity)
-            // 쿼리를 조인으로 묶는다 쿼리 다시 짜기...ㅠㅠ
+            val updateRecord =  expenseRecordDao.getRecordData(recordId)
             dailyUiState = dailyUiState.copy(updateRecord = updateRecord)
         }
     }

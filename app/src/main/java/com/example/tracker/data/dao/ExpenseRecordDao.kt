@@ -11,6 +11,7 @@ import com.example.tracker.data.dto.ExpenseDailyPriceDto
 import com.example.tracker.data.dto.ExpenseTrackingDto
 import com.example.tracker.data.dto.ExpenseWholeCircleDto
 import com.example.tracker.data.entity.ExpenseRecord
+import com.example.tracker.ui.daily.UpdateRecord
 
 @Dao
 interface ExpenseRecordDao {
@@ -42,29 +43,42 @@ interface ExpenseRecordDao {
 
     @Query("SELECT s.id AS subCategoryId, s.name AS subCategoryName, s.categoryId  AS categoryId, SUM(r.unitPrice*r.quantity) AS totalPrice FROM expense_record r INNER JOIN expense_subcategory_definition s ON r.subCategoryId = s.id WHERE date BETWEEN :start AND :end AND s.categoryId =:categoryId GROUP BY s.id, s.name ORDER BY totalPrice DESC")
     // s.name이랑 s.id가 group by에 들어가는 이유는 캡슐화? 뭐 그런거임...s.name에 유니크 걸어서 중복 안되게 하면 s.id로 하나 s.name으로 하나 전부 주 키로 쓸 수 있지만 캡슐화를 위한거임...캡슐화가 아닌가
-    suspend fun circleGraphingByCategory(start: String, end: String, categoryId: Long): List<ExpenseCircleByCategoryDto>
+    suspend fun circleGraphingByCategory(
+        start: String,
+        end: String,
+        categoryId: Long
+    ): List<ExpenseCircleByCategoryDto>
 
     @Query("SELECT s.id AS subCategoryId, SUM(r.unitPrice * r.quantity) AS totalPrice FROM expense_subcategory_definition AS s INNER JOIN expense_record AS r ON r.subCategoryId = s.id WHERE r.date BETWEEN :start AND :end GROUP BY s.categoryId ORDER BY totalPrice DESC") // group by = sum의 계산 단위
-    suspend fun wholeCircleGraphing(start: String, end: String) : List<ExpenseWholeCircleDto>
+    suspend fun wholeCircleGraphing(start: String, end: String): List<ExpenseWholeCircleDto>
 
     @Query("SELECT date, SUM(quantity*unitPrice) AS dailyTotalPrice FROM expense_record WHERE date BETWEEN :start AND :end GROUP BY date ORDER BY date ASC")
-    suspend fun calcDailyExpense(start:String, end: String): List<ExpenseDailyPriceDto>
+    suspend fun calcDailyExpense(start: String, end: String): List<ExpenseDailyPriceDto>
 
     // 같은 date + itemId +subCategoryId 기록이 있는지 조회
     // 있으면 quantity 증가해서 update
     // 없으면 insert
 
     @Query("SELECT * FROM expense_record WHERE date = :date AND itemId = :itemId AND subCategoryId = :subCategoryId LIMIT 1")
-    suspend fun findSameExpenseRecord(date: String, itemId: Long, subCategoryId: Long): ExpenseRecord?
+    suspend fun findSameExpenseRecord(
+        date: String,
+        itemId: Long,
+        subCategoryId: Long
+    ): ExpenseRecord?
 
     @Transaction
-    suspend fun addExpenseRecord(record: ExpenseRecord){
+    suspend fun addExpenseRecord(record: ExpenseRecord) {
         val existing = findSameExpenseRecord(record.date, record.itemId, record.subCategoryId)
 
-        if(existing == null){
+        if (existing == null) {
             insert(record)
-        } else{
+        } else {
             update(existing.copy(quantity = existing.quantity + record.quantity)) // data class 기능, 특정변수만 집어서 변경가능
         }
-    }
+    } // 기존에 지출이 기록돼있으면 업데이트, 아니면 새로 추가
+
+    @Query("SELECT i.name AS itemName, r.itemId AS itemId, s.name AS subCategoryName, r.subCategoryId AS subCategoryId, r.unitPrice AS unitPrice, r.quantity AS quantity" +
+            " FROM expense_record AS r INNER JOIN item_definition AS i ON r.itemId = i.id INNER JOIN expense_subcategory_definition AS s ON r.subCategoryId = s.id" +
+            " WHERE r.id = :recordId")
+    suspend fun getRecordData(recordId: Long): UpdateRecord
 }
