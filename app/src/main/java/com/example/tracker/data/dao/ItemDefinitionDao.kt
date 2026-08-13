@@ -1,9 +1,11 @@
 package com.example.tracker.data.dao
 
+import android.content.ClipData
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.tracker.data.entity.ItemDefinition
 
@@ -32,4 +34,20 @@ interface ItemDefinitionDao {
 
     @Query("SELECT name FROM item_definition WHERE id = :id")
     suspend fun getNameById(id: Long): String
+
+    @Transaction
+    suspend fun insertOrGetCandidates(item: ItemDefinition): List<ItemDefinition>{
+        val existings= getByName(item.name)
+        var sames = mutableListOf<ItemDefinition>()
+        for(e in existings){
+            if(e.subCategoryId == item.subCategoryId && e.name == item.name && e.store == item.store && e.kcalPerUnit == item.kcalPerUnit && e.defaultPrice == item.defaultPrice){
+                sames.add(e)
+            }
+        }
+        if(sames.isEmpty()) {
+            insert(item)
+        }
+        return sames
+    }
+
 }

@@ -79,6 +79,6 @@ interface ExpenseRecordDao {
 
     @Query("SELECT i.name AS itemName, r.itemId AS itemId, s.name AS subCategoryName, r.subCategoryId AS subCategoryId, r.unitPrice AS unitPrice, r.quantity AS quantity" +
             " FROM expense_record AS r INNER JOIN item_definition AS i ON r.itemId = i.id INNER JOIN expense_subcategory_definition AS s ON r.subCategoryId = s.id" +
-            " WHERE r.id = :recordId")
+            " WHERE r.id = :recordId")// 외래키라서 LEFT JOIN이 아니고 INNER JOIN 써도딤
     suspend fun getRecordData(recordId: Long): UpdateRecord
 }

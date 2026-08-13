@@ -14,7 +14,8 @@ data class DailyUiState(
     val expenses: List<ExpenseCategory> = emptyList(),
 
     val updateRecord: UpdateRecord? = null,
-    val itemList: List<String>, // item list
+    val itemCandidates: List<ItemDefinition>,
+    val showDuplicateDialog: Boolean = false,
 
     val updateItem: ItemDefinition? = null,
 

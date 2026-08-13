@@ -144,7 +144,8 @@ class  DailyViewModel(
     // 5. 아이템검색
     fun searchItems(itemName: String){
         viewModelScope.launch{
-            itemDefinitionDao.getByName(itemName)
+            val items = itemDefinitionDao.getByName(itemName)
+            dailyUiState = dailyUiState.copy(itemCandidates = items)
             loadDailyData()
         }
     }
@@ -152,7 +153,8 @@ class  DailyViewModel(
     // 6. 아이템 추가
     fun addItem(item: ItemDefinition){
         viewModelScope.launch{
-            itemDefinitionDao.insert(item) //근데 이거 앞에 트랜잭션한거처럼 해야하나? 지출에서 트랜잭션한거처럼...
+            itemDefinitionDao.insertOrGetCandidates(item)
+            dailyUiState = dailyUiState.copy(updateRecord = updateRecord)
             loadDailyData()
         }
     }

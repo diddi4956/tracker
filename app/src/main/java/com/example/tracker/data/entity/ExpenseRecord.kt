@@ -9,7 +9,8 @@ data class ExpenseRecord(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val date: String,
-    val subCategoryId: Long, // null봐주게되면 카테고리에도 속하지못하게됨..
+    val subCategoryId: Long, // null봐주게되면 카테고리에도 속하지못하게됨.. 외래키걸기는 나중에 함 해보기\
+
     val itemId: Long,
     val unitPrice: Long,
     val quantity: Int,
