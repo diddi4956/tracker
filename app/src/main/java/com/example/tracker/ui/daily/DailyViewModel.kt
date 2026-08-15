@@ -109,7 +109,7 @@ class  DailyViewModel(
         }
     }
 
-    // 2. 지출내역 추가. 근데 카테고리별로 다 다른데 그럼 버튼이 다섯개여야하나?
+    // 2. 지출내역 추가.
     fun addExpenseRecord(record: ExpenseRecord){
         viewModelScope.launch{
             expenseRecordDao.insert(record)
@@ -121,11 +121,11 @@ class  DailyViewModel(
     fun updateExpenseRecord(record: ExpenseRecord){
         viewModelScope.launch{
             expenseRecordDao.addExpenseRecord(expenseRecordDao.getRecord(record.id))
-
             loadDailyData()
         }
     }
 
+    // 리코드에 대한 팝업
     fun loadExpenseRecord(recordId: Long){
         viewModelScope.launch{
             val updateRecord =  expenseRecordDao.getRecordData(recordId)
@@ -153,16 +153,24 @@ class  DailyViewModel(
     // 6. 아이템 추가
     fun addItem(item: ItemDefinition){
         viewModelScope.launch{
-            itemDefinitionDao.insertOrGetCandidates(item)
-            dailyUiState = dailyUiState.copy(updateRecord = updateRecord)
-            loadDailyData()
+            val candidates = itemDefinitionDao.insertOrGetCandidates(item)
+            dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) //candidates가 있으면 true
+
+            if(candidates.isEmpty()){ // 팝업을 열지 못하면 페이지 리로드
+                loadDailyData()
+            }
+
         }
     }
 
     // 7. 아이템 수정
     fun updateItem(item: ItemDefinition){
         viewModelScope.launch{
-            itemDefinitionDao.update(item)
+            val candidates = itemDefinitionDao.updateOrGetCandidates(item)
+            if(candidates.isEmpty()){
+                dailyUiState = dailyUiState.copy(updateItem = item)
+            }
+
             loadDailyData()
         }
     } // 이게 나으려나? 아님 itemId를 받아야하나
@@ -194,7 +202,7 @@ class  DailyViewModel(
 //    }
 
     // 3. 해빗 추가/수정하기(저장버튼 눌렀을시) 버튼 -> state변경(팝업 등) -> UI변경(컴포즈역할) -> 저장버튼 -> db변경(이때 기존에 있는지도 판단)
-    fun updateHabit(habitDefinition: HabitDefinition){
+    fun updateHabit(habitDefinition: HabitDefinition){ㄴ
         viewModelScope.launch{
             habitDefinitionDao.update(habitDefinition)
             loadDailyData()
