@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.example.tracker.data.entity.ItemDefinition
+import kotlin.reflect.KCallable
 
 @Dao
 interface ItemDefinitionDao {
@@ -35,34 +36,8 @@ interface ItemDefinitionDao {
     @Query("SELECT name FROM item_definition WHERE id = :id")
     suspend fun getNameById(id: Long): String
 
-    @Transaction
-    suspend fun insertOrGetCandidates(item: ItemDefinition): List<ItemDefinition>{
-        val existings= getByName(item.name)
-        val sames = mutableListOf<ItemDefinition>()
-        for(e in existings){
-            if(e.subCategoryId == item.subCategoryId && e.name == item.name && e.store == item.store && e.kcalPerUnit == item.kcalPerUnit && e.defaultPrice == item.defaultPrice){
-                sames.add(e)
-            }
-        }
-        if(sames.isEmpty()) {
-            insert(item)
-        }
-        return sames
-    }
-
-    @Transaction // candidate = 같은거. 있으면 동작하면 안됨.
-    suspend fun updateOrGetCandidates(item: ItemDefinition): List<ItemDefinition>{
-        val existings= getByName(item.name)
-        val sames = mutableListOf<ItemDefinition>()
-        for(e in existings){
-            if(e.subCategoryId == item.subCategoryId && e.name == item.name && e.store == item.store && e.kcalPerUnit == item.kcalPerUnit && e.defaultPrice == item.defaultPrice && e.id != item.id){
-                sames.add(e)
-            }
-        }
-        if(sames.isEmpty()) {
-            update(item)
-        }
-        return sames
-    }
+    @Query("SELECT * FROM item_definition " +
+            "WHERE subCategoryId = :subCategoryId AND name = :name AND store = :store AND kcalPerUnit = :kcalPerUnit AND defaultPrice = :defaultPrice AND id != :excludeId")
+    suspend fun duplicationTest(subCategoryId: Long, name: String, store: String?, kcalPerUnit: Long?, defaultPrice: Long, excludeId: Long): List<ItemDefinition>
 
 }
