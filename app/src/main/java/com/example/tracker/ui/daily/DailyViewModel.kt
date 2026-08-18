@@ -150,9 +150,9 @@ class  DailyViewModel(
         }
     }
 
-    // 아이템팝업로드(추가)
+    // 아이템 추가 팝업 (초반에 세팅되는 데이터가 달라 추가와 수정 분리함)
     fun openAddItem(){
-        dailyUiState = dailyUiState.copy(updateItem = ItemDefinition(subCategoryId = 0L, name = "", store = null, kcalPerUnit = null, defaultPrice = 0L, memo = ""))
+        dailyUiState = dailyUiState.copy(itemForm = ItemDefinition(subCategoryId = 0L, name = "", store = null, kcalPerUnit = null, defaultPrice = 0L, memo = ""))
     }
 
     // 6. 아이템 추가
@@ -160,19 +160,20 @@ class  DailyViewModel(
         viewModelScope.launch{
             // 0L바꾸는 작업필요
             val candidates = itemDefinitionDao.duplicationTest(item.subCategoryId, item.name, item.store, item.kcalPerUnit, item.defaultPrice, item.id)
-            dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) //candidates가 있으면 true
+            // dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) //candidates가 있으면 true
 
-            if(candidates.isEmpty()){ // 팝업을 열지 못하면 페이지 리로드
+            if(candidates.isEmpty()){ // 팝업을 열지 못하면(중복이 없으면) insert, 페이지 리로드
+                itemDefinitionDao.insert(item)
                 loadDailyData()
             }
 
         }
     }
 
-    // 아이템수정팝업
+    // 아이템 수정 팝업
     fun openUpdateItem(item: ItemDefinition){
         viewModelScope.launch{
-            dailyUiState = dailyUiState.copy(updateItem = item)
+            dailyUiState = dailyUiState.copy(itemForm = item)
         }
     }
 
@@ -180,11 +181,13 @@ class  DailyViewModel(
     fun updateItem(item: ItemDefinition){
         viewModelScope.launch{
             val candidates = itemDefinitionDao.duplicationTest(item.subCategoryId, item.name, item.store, item.kcalPerUnit, item.defaultPrice, item.id)
-            if(candidates.isEmpty()){
-                dailyUiState = dailyUiState.copy(updateItem = item)
-            }
+            // 팝업에 입력된 내용을 띄워줌
+            // dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) // 후보가 있으면 true(중복 데이터 띄움) -> candidate를 띄워주는 기능을 없앰(디비 입력에의 허용/거부만 남김)
 
-            loadDailyData()
+            if(candidates.isEmpty()){ // 중복이 없으면 update
+                itemDefinitionDao.update(item)
+                loadDailyData() // 수정이 됐을때만 화면 리로드
+            }
         }
     } // 이게 나으려나? 아님 itemId를 받아야하나
 

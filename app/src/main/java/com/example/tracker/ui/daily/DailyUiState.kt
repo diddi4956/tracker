@@ -14,10 +14,10 @@ data class DailyUiState(
     val expenses: List<ExpenseCategory> = emptyList(),
 
     val updateRecord: UpdateRecord? = null,
-    val itemCandidates: List<ItemDefinition> = emptyList(),
-    val showDuplicateDialog: Boolean = false,
+    // val itemCandidates: List<ItemDefinition> = emptyList(),
+    // val showDuplicateDialog: Boolean = false,
 
-    val updateItem: ItemDefinition? = null,
+    val itemForm: ItemDefinition? = null,
 
     // habit
     val habits: List<HabitCategory> = emptyList(),
