@@ -38,7 +38,7 @@ interface ItemDefinitionDao {
 
     // 여러 필드들이 동시에 같은 item 데이터 서치
     @Query("SELECT * FROM item_definition " +
-            "WHERE subCategoryId = :subCategoryId AND name = :name AND store = :store AND kcalPerUnit = :kcalPerUnit AND defaultPrice = :defaultPrice AND id != :excludeId")
-    suspend fun duplicationTest(subCategoryId: Long, name: String, store: String?, kcalPerUnit: Long?, defaultPrice: Long, excludeId: Long): List<ItemDefinition>
+            "WHERE subCategoryId = :subCategoryId AND name = :name AND store = :store AND kcalPerUnit = :kcalPerUnit AND defaultPrice = :defaultPrice AND (:excludeId IS NULL OR id != :excludeId)")
+    suspend fun duplicationTest(subCategoryId: Long, name: String, store: String?, kcalPerUnit: Long?, defaultPrice: Long, excludeId: Long?): List<ItemDefinition>
 
 }

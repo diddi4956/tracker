@@ -158,8 +158,8 @@ class  DailyViewModel(
     // 6. 아이템 추가
     fun addItem(item: ItemDefinition){
         viewModelScope.launch{
-            // 0L바꾸는 작업필요
-            val candidates = itemDefinitionDao.duplicationTest(item.subCategoryId, item.name, item.store, item.kcalPerUnit, item.defaultPrice, item.id)
+            // excludeId를 null로 설정
+            val candidates = itemDefinitionDao.duplicationTest(item.subCategoryId, item.name, item.store, item.kcalPerUnit, item.defaultPrice, null)
             // dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) //candidates가 있으면 true
 
             if(candidates.isEmpty()){ // 팝업을 열지 못하면(중복이 없으면) insert, 페이지 리로드
