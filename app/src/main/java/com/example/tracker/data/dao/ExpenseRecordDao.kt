@@ -11,7 +11,7 @@ import com.example.tracker.data.dto.ExpenseDailyPriceDto
 import com.example.tracker.data.dto.ExpenseTrackingDto
 import com.example.tracker.data.dto.ExpenseWholeCircleDto
 import com.example.tracker.data.entity.ExpenseRecord
-import com.example.tracker.ui.daily.UpdateRecord
+import com.example.tracker.ui.daily.ExpenseRecordForm
 
 @Dao
 interface ExpenseRecordDao {
@@ -59,16 +59,17 @@ interface ExpenseRecordDao {
     // 있으면 quantity 증가해서 update
     // 없으면 insert
 
-    @Query("SELECT * FROM expense_record WHERE date = :date AND itemId = :itemId AND subCategoryId = :subCategoryId LIMIT 1")
+    @Query("SELECT * FROM expense_record WHERE date = :date AND itemId = :itemId AND subCategoryId = :subCategoryId AND (:excludeId IS NULL OR id != :excludeId) LIMIT 1")
     suspend fun findSameExpenseRecord(
         date: String,
         itemId: Long,
-        subCategoryId: Long
+        subCategoryId: Long,
+        excludeId: Long?
     ): ExpenseRecord?
 
     @Transaction
     suspend fun addExpenseRecord(record: ExpenseRecord) {
-        val existing = findSameExpenseRecord(record.date, record.itemId, record.subCategoryId)
+        val existing = findSameExpenseRecord(record.date, record.itemId, record.subCategoryId, null)
 
         if (existing == null) {
             insert(record)
@@ -77,8 +78,9 @@ interface ExpenseRecordDao {
         }
     } // 기존에 지출이 기록돼있으면 업데이트, 아니면 새로 추가
 
-    @Query("SELECT i.name AS itemName, r.itemId AS itemId, s.name AS subCategoryName, r.subCategoryId AS subCategoryId, r.unitPrice AS unitPrice, r.quantity AS quantity" +
+    //recordId를 사용해 DailyUiState의 ExpenseRecordFrom(ExpenseRecord+itemName,subCategoryName)을 채우는 쿼리
+    @Query("SELECT i.name AS itemName, r.itemId AS itemId, s.name AS subCategoryName, r.id AS recordId, r.subCategoryId AS subCategoryId, r.unitPrice AS unitPrice, r.quantity AS quantity" +
             " FROM expense_record AS r INNER JOIN item_definition AS i ON r.itemId = i.id INNER JOIN expense_subcategory_definition AS s ON r.subCategoryId = s.id" +
             " WHERE r.id = :recordId")// 외래키라서 LEFT JOIN이 아니고 INNER JOIN 써도딤
-    suspend fun getRecordData(recordId: Long): UpdateRecord
+    suspend fun getRecordData(recordId: Long): ExpenseRecordForm
 }

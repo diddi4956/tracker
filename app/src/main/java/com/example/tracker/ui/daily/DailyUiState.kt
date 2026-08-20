@@ -13,7 +13,7 @@ data class DailyUiState(
     // expense
     val expenses: List<ExpenseCategory> = emptyList(),
 
-    val updateRecord: UpdateRecord? = null,
+    val expenseRecordForm: ExpenseRecordForm? = null,
     val itemCandidates: List<ItemDefinition> = emptyList(),
     // val showDuplicateDialog: Boolean = false,
 
@@ -49,7 +49,7 @@ data class ExpenseCategory(
     val totalPrice: Int
 )
 
-data class UpdateRecord(
+data class ExpenseRecordForm(
     val recordId: Long,
     val itemName: String, // 근데 이거 검색해서 주루룩 나오게 하는건데 그럼 이것도 리스트가 필요한 영역인가?
     val itemId: Long,

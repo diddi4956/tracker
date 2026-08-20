@@ -109,29 +109,46 @@ class  DailyViewModel(
         }
     }
 
+    // 지출내역(record) 추가 팝업
+    fun openAddExpenseRecord(){
+        dailyUiState = dailyUiState.copy(expenseRecordForm = ExpenseRecordForm(0L, "", 0L, "", 0L, 0L, 0))
+    }
+
     // 2. 지출내역 추가.
     fun addExpenseRecord(record: ExpenseRecord){
+       viewModelScope.launch{
+           expenseRecordDao.addExpenseRecord(record)
+           loadDailyData()
+       }
+    }
+
+    //
+    fun openUpdateExpenseRecord(record: ExpenseRecord){
         viewModelScope.launch{
-            expenseRecordDao.insert(record)
-            loadDailyData()
+            val formData = expenseRecordDao.getRecordData(record.id)
+            dailyUiState = dailyUiState.copy(expenseRecordForm = formData)
+        }
+
+    }
+     // 3. 지출내역 수정
+    fun updateExpenseRecord(record: ExpenseRecord) {
+        viewModelScope.launch{
+            val candidates = expenseRecordDao.findSameExpenseRecord(record.date, record.itemId, record.subCategoryId, record.id)
+
+            if(candidates == null) { // 중복이 없으면 DB 수정
+                expenseRecordDao.update(record)
+                loadDailyData()
+            }
         }
     }
 
-    // 3. 지출내역 수정. 이거는 아마 리코드아이디를 받아서 해야할듯
-    fun updateExpenseRecord(record: ExpenseRecord){
-        viewModelScope.launch{
-            expenseRecordDao.addExpenseRecord(expenseRecordDao.getRecord(record.id))
-            loadDailyData()
-        }
-    }
-
-    // 리코드에 대한 팝업(2,3번 전 작업)
-    fun loadExpenseRecord(recordId: Long){
-        viewModelScope.launch{
-            val updateRecord =  expenseRecordDao.getRecordData(recordId)
-            dailyUiState = dailyUiState.copy(updateRecord = updateRecord)
-        }
-    }
+//    // 리코드에 대한 팝업(2,3번 전 작업)
+//    fun loadExpenseRecord(recordId: Long){
+//        viewModelScope.launch{
+//            val updateRecord =  expenseRecordDao.getRecordData(recordId)
+//            dailyUiState = dailyUiState.copy(updateRecord = updateRecord)
+//        }
+//    }
 
     // 4. 리코드 삭제
     fun deleteExpenseRecord(record: ExpenseRecord){
@@ -172,9 +189,7 @@ class  DailyViewModel(
 
     // 아이템 수정 팝업
     fun openUpdateItem(item: ItemDefinition){
-        viewModelScope.launch{
-            dailyUiState = dailyUiState.copy(itemForm = item)
-        }
+        dailyUiState = dailyUiState.copy(itemForm = item)
     }
 
     // 7. 아이템 수정
