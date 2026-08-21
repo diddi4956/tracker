@@ -29,4 +29,7 @@ interface HabitDefinitionDao {
     @Query("SELECT * FROM habit_definition WHERE id = :habitDefinitionId")
     suspend fun findDefinition(habitDefinitionId: Long): HabitDefinition?
 
+
+    @Query("SELECT * FROM habit_definition WHERE categoryId = :categoryId AND name = :name AND (:excludeId IS NULL OR id != :excludeId)")
+    suspend fun findDuplicationDefinition(categoryId: Long, name: String, excludeId: Long?): HabitDefinition?
 }

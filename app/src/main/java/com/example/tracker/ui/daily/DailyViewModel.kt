@@ -235,26 +235,36 @@ class  DailyViewModel(
     // 3. 해빗 추가/수정하기(저장버튼 눌렀을시) 버튼 -> state변경(팝업 등) -> UI변경(컴포즈역할) -> 저장버튼 -> db변경(이때 기존에 있는지도 판단)
     fun updateHabit(habitDefinition: HabitDefinition){
         viewModelScope.launch{
-            habitDefinitionDao.update(habitDefinition)
-            loadDailyData()
+            val candidate = habitDefinitionDao.findDuplicationDefinition(habitDefinition.categoryId, habitDefinition.name, habitDefinition.id)
+
+            if(candidate == null){
+                habitDefinitionDao.update(habitDefinition)
+                loadDailyData()
+            }
         }
     }
 
     fun addHabit(habitDefinition: HabitDefinition){
         viewModelScope.launch{
-            habitDefinitionDao.insert(habitDefinition)
-            loadDailyData()
+            val candidate = habitDefinitionDao.findDuplicationDefinition(habitDefinition.categoryId, habitDefinition.name, null)
+
+            if(candidate == null){ // 중복이 없는경우 -> insert
+                habitDefinitionDao.insert(habitDefinition)
+                loadDailyData()
+            }
         }
     }
-    fun openUpdateHabit(habitId: Long){ // 해빗 수정을 눌렀을 때 팝업창 채워줌
+    // 해빗데피니션 수정 팝업
+    fun openUpdateHabit(habitId: Long){
         viewModelScope.launch{
             val definition = habitDefinitionDao.findDefinition(habitId)
             dailyUiState = dailyUiState.copy(updateHabit = definition)
         }
     }
 
+    // 해빗데피니션 추가 팝업
     fun openAddHabit(){
-        dailyUiState = dailyUiState.copy(updateHabit = HabitDefinition(id = null, categoryId = null, name = "", )
+        dailyUiState = dailyUiState.copy(updateHabit = HabitDefinition(id = 0L, categoryId = 0L, name = "", importance = 0))
     }
 
     // 4. 프로젝트 추가/수정하기
