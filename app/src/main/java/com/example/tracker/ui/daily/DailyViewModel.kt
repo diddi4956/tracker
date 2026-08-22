@@ -255,11 +255,8 @@ class  DailyViewModel(
         }
     }
     // 해빗데피니션 수정 팝업
-    fun openUpdateHabit(habitId: Long){
-        viewModelScope.launch{
-            val definition = habitDefinitionDao.findDefinition(habitId)
-            dailyUiState = dailyUiState.copy(updateHabit = definition)
-        }
+    fun openUpdateHabit(habit: HabitDefinition){
+        dailyUiState = dailyUiState.copy(updateHabit = habit)
     }
 
     // 해빗데피니션 추가 팝업
@@ -270,17 +267,35 @@ class  DailyViewModel(
     // 4. 프로젝트 추가/수정하기
     fun addProject(habitProject: HabitCategoryDefinition){
         viewModelScope.launch{
-            habitCategoryDefinitionDao.insert(habitProject) // 트랜잭션 아직 덜함
-            loadDailyData()
+            val candidates = habitCategoryDefinitionDao.testDuplication(habitProject.name, habitProject.endDate, habitProject.startDate, null)
+
+            if(candidates.isEmpty()){
+                habitCategoryDefinitionDao.insert(habitProject) // 트랜잭션 아직 덜함
+                loadDailyData()
+            }
         }
+    }
+
+    //
+    fun openAddProject(){
+        dailyUiState = dailyUiState.copy(updateHabitCategory = HabitCategoryDefinition(0L,  "", null, null))
     }
 
     // 5. 프로젝트 수정하기
     fun updateProject(project: HabitCategoryDefinition){
         viewModelScope.launch{
-            habitCategoryDefinitionDao.update(project)
-            loadDailyData()
+            val candidates = habitCategoryDefinitionDao.testDuplication(project.name, project.endDate, project.startDate, project.id)
+
+            if(candidates.isEmpty()){
+                habitCategoryDefinitionDao.update(project)
+                loadDailyData()
+            }
         }
+    }
+
+    //
+    fun openUpdateProject(project: HabitCategoryDefinition){
+        dailyUiState = dailyUiState.copy(updateHabitCategory = project)
     }
 
     fun loadHabitProject(projectId: Long){

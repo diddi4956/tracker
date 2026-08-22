@@ -25,4 +25,8 @@ interface HabitCategoryDefinitionDao {
     @Query("SELECT * FROM habit_category WHERE id = :habitCategoryId")
     suspend fun findHabitProject(habitCategoryId: Long): HabitCategoryDefinition?
 
+    @Query("SELECT * FROM habit_category " +
+            "WHERE name = :name AND (startDate < :endDate AND endDate > :startDate) AND (:excludeId IS NULL OR id != :excludeId)")
+    suspend fun testDuplication(name: String, endDate: String?, startDate: String?, excludeId: Long?): List<HabitCategoryDefinition>
+
 }
