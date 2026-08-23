@@ -42,8 +42,8 @@ interface ConditionDefinitionDao {
     @Query("SELECT * FROM condition_definition")
     suspend fun getAll(): List<ConditionDefinition>
 
-    @Query("SELECT * FROM condition_definition WHERE isActive = 1")
-    suspend fun getActiveCondition(): List<ConditionDefinition>
+//    @Query("SELECT * FROM condition_definition WHERE isActive = 1")
+//    suspend fun getActiveCondition(): List<ConditionDefinition>
 
     @Query("SELECT * FROM condition_definition WHERE name = :name")
     suspend fun getByName(name: String):List<ConditionDefinition>
@@ -79,4 +79,12 @@ interface ConditionDefinitionDao {
         deleteRelationByTag(tag.id)
         deleteTag(tag)
     }
+
+    @Query("SELECT t.* FROM condition_tag AS t JOIN condition_definition_tag AS r ON t.id = r.tagId " +
+            "WHERE r.conditionDefinitionId = :conditionId")
+    suspend fun findTagByConditionId(conditionId: Long): List<ConditionTag>
+
+    @Query("SELECT * FROM condition_definition " +
+            "WHERE name = :name AND conditionCategoryId = :categoryId AND (:excludeId IS NULL OR id != :excludeId)")
+    suspend fun testDuplication(name: String, categoryId: Long, excludeId: Long?): List<ConditionDefinition>
 }

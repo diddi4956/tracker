@@ -341,17 +341,40 @@ class  DailyViewModel(
     // 2.
     fun addConditionDefinition(condition: ConditionDefinition, tagIds:List<Long>){
         viewModelScope.launch{
-            conditionDefinitionDao.insertDefinitionWithTag(condition, tagIds)
-            loadDailyData()
+            val candidates = conditionDefinitionDao.testDuplication(condition.name, condition.conditionCategoryId, null)
+
+            if(candidates.isEmpty()){
+                conditionDefinitionDao.insertDefinitionWithTag(condition, tagIds)
+                loadDailyData()
+            }
+
         }
+    }
+
+    // condition 추가 팝업
+    fun openAddCondition(){
+        dailyUiState = dailyUiState.copy(conditionForm = ConditionDefinition(0L, "", 0L, true, 0)) // 이거 isActive자리는 기본세팅 어케해야하냐
     }
 
     // 3.
     fun updateCondition(condition: ConditionDefinition){
         viewModelScope.launch{
-            conditionDefinitionDao.updateDefinition(condition)
-            loadDailyData()
+            val candidates = conditionDefinitionDao.testDuplication(condition.name, condition.conditionCategoryId, condition.id)
+
+            if(candidates.isEmpty()){
+                conditionDefinitionDao.updateDefinition(condition)
+                loadDailyData()
+            }
         }
+    }
+
+    //
+    fun openUpdateCondition(condition: ConditionDefinition){
+        viewModelScope.launch{
+            val tagList = conditionDefinitionDao.findTagByConditionId(condition.id)
+            dailyUiState = dailyUiState.copy(conditionForm = condition, tagList = tagList)
+        }
+
     }
 
     // 4. 태그연결하기(데피니션에서 태그 선택해서 추가하기) conditionDefinitionId를 사용하여 relation만듦
