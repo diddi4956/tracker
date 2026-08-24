@@ -353,7 +353,7 @@ class  DailyViewModel(
 
     // condition 추가 팝업
     fun openAddCondition(){
-        dailyUiState = dailyUiState.copy(conditionForm = ConditionDefinition(0L, "", 0L, true, 0)) // 이거 isActive자리는 기본세팅 어케해야하냐
+        dailyUiState = dailyUiState.copy(conditionForm = ConditionDefinition(0L, "", 0L, 0)) // 이거 isActive자리는 기본세팅 어케해야하냐
     }
 
     // 3.
@@ -362,7 +362,7 @@ class  DailyViewModel(
             val candidates = conditionDefinitionDao.testDuplication(condition.name, condition.conditionCategoryId, condition.id)
 
             if(candidates.isEmpty()){
-                conditionDefinitionDao.updateDefinition(condition)
+                conditionDefinitionDao.updateConditionDetails(condition.name, condition.conditionCategoryId, condition.id)
                 loadDailyData()
             }
         }
@@ -414,17 +414,35 @@ class  DailyViewModel(
     // 7. 태그 추가하기
     fun addTag(tag: ConditionTag){
         viewModelScope.launch{
-            conditionDefinitionDao.insertTag(tag) // 근데 태그는 데피니션이 필수가 아닌가? 굳이인가보당 하긴
-            loadDailyData()
+            val candidates = conditionDefinitionDao.testTagDuplication(tag.name, null)
+
+            if(candidates.isEmpty()){
+                conditionDefinitionDao.insertTag(tag) // 근데 태그는 데피니션이 필수가 아닌가? 굳이인가보당 하긴
+                loadDailyData()
+            }
         }
+    }
+
+    //
+    fun openAddTag(){
+        dailyUiState = dailyUiState.copy(conditionTagForm = ConditionTag(0L, ""))
     }
 
     // 8. 태그 수정하기
     fun updateTag(tag: ConditionTag){
         viewModelScope.launch{
-            conditionDefinitionDao.updateTag(tag)
-            loadDailyData()
+            val candidates = conditionDefinitionDao.testTagDuplication(tag.name, tag.id)
+
+            if(candidates.isEmpty()){
+                conditionDefinitionDao.updateTag(tag)
+                loadDailyData()
+            }
         }
+    }
+
+    //
+    fun openUpdateTag(tag: ConditionTag){
+        dailyUiState = dailyUiState.copy(conditionTagForm = tag)
     }
 
     // 9. 삭제. 태그랑 컨디션 데피니션 삭제

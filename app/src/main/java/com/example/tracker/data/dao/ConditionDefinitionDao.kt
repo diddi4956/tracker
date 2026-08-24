@@ -87,4 +87,12 @@ interface ConditionDefinitionDao {
     @Query("SELECT * FROM condition_definition " +
             "WHERE name = :name AND conditionCategoryId = :categoryId AND (:excludeId IS NULL OR id != :excludeId)")
     suspend fun testDuplication(name: String, categoryId: Long, excludeId: Long?): List<ConditionDefinition>
+
+    // id와 frequency제외하고 업뎃
+    @Query("UPDATE condition_definition SET name = :name, conditionCategoryId = :conditionCategoryId WHERE id = :id")
+    suspend fun updateConditionDetails(name: String, conditionCategoryId: Long, id: Long)
+
+    @Query("SELECT * FROM condition_tag " +
+            "WHERE name = :name AND (:excludeId IS NULL OR id != :excludeId)")
+    suspend fun testTagDuplication(name:String, excludeId: Long?):List<ConditionTag>
 }
