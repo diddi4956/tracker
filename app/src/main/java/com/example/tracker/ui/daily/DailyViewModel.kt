@@ -92,17 +92,17 @@ class  DailyViewModel(
     fun loadDailyData(){
         viewModelScope.launch { // DAO함수가 suspend fun이면 그냥 호출 못하고 코루틴안에서 해야하므로 하는것.
             // Android Jetpack의 ViewModel 라이브러리가 제공하는 것
-            // 1. 지출 조회
-            val expenseRecords = expenseRecordDao.getByDate(dailyUiState.date) // List<ExpenseRecord>
+            val date = dailyUiState.date
 
-            // 2. 해빗 조회
-            // habits
-            val habitRecords = habitRecordDao.getDailyList(dailyUiState.date) // List<HabitGetDailyListDto> 1. DAO결과 받기
-            val habitCategories = habitRecords.groupBy{habit -> habit.categoryName}.map{(categoryName, habitList) -> HabitCategory(categoryName = categoryName, habitList = habitList)} // 2. 카테고리별로 변환하기
-            dailyUiState = dailyUiState.copy(habits = habitCategories) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
+            val expenseRecords = expenseRecordDao.getByDate(date)
+            val habitRecords = habitRecordDao.getDailyList(date)
+            val conditionRecords = conditionRecordDao.getDailyList(date)
+            val conditionList = conditionDefinitionDao.getDefinitionList()
 
-            // 3. 컨디션 조회
-            val conditionRecord = conditionRecordDao.getDailyList((dailyUiState.date), ) // tagIds리스트 들어가야함. List<ConditionGetDailyListDto>
+            val expenseByCategory = expenseRecords.groupBy{it.categoryId}.map{record -> ExpenseByCategory(record.categoryName, record.)}
+
+            val expenseByCategory =
+            dailyUiState = dailyUiState.copy(expenses = expenseByCategory, habits = habitRecords, conditions = conditionRecords, co) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
 
             // 4. dto -> UiState 변환
             // 5. dailyUiState 갱신

@@ -30,4 +30,5 @@ interface ExpenseSubCategoryDao {
 
     @Query("SELECT name FROM expense_subcategory_definition WHERE id = :id")
     suspend fun getNameById(id: Long):String
+
 }

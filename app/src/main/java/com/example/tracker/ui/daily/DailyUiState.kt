@@ -4,14 +4,15 @@ import com.example.tracker.data.dto.ConditionGetDailyListDto
 import com.example.tracker.data.dto.HabitGetDailyListDto
 import com.example.tracker.data.entity.ConditionDefinition
 import com.example.tracker.data.entity.ConditionTag
+import com.example.tracker.data.entity.ExpenseRecord
 import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.ItemDefinition
 
 data class DailyUiState(
-    val date: String = "",
+    val date: String = "", // loadDailyData()
     // expense
-    val expenses: List<ExpenseCategory> = emptyList(),
+    val expenses: List<ExpenseByCategory> = emptyList(), // loadDailyData()
 
     val expenseRecordForm: ExpenseRecordForm? = null,
     val itemCandidates: List<ItemDefinition> = emptyList(),
@@ -20,13 +21,14 @@ data class DailyUiState(
     val itemForm: ItemDefinition? = null,
 
     // habit
-    val habits: List<HabitCategory> = emptyList(),
+    val habits: List<HabitCategory> = emptyList(), // loadDailyData()
 
     val updateHabitCategory: HabitCategoryDefinition? = null,
     val updateHabit: HabitDefinition? = null,
 
     // condition
-    val conditions: List<ConditionDailyListByTag> = emptyList(),
+    val dailyConditions: List<ConditionDailyListByTag> = emptyList(), // loadDailyData()
+
     val conditionSearchText: String = "", // 어 이렇게 하는게 맞는건가? 리스트들이 떠야하는데///
     //val conditionSearchText: List<String> 이렇게 아닌가? 이것은 혹시 몰라 만들어둔 검색창으로 쓰기.
     val conditionForm: ConditionDefinition? = null,
@@ -35,18 +37,21 @@ data class DailyUiState(
     //
     val isLoading: Boolean = false
 )
-data class ExpenseDailyRecordByCategory(
+data class ExpenseDailyRecord(
     val recordId: Long?,
-    // val categoryName: String,
+    val categoryName: String,
     val subCategoryId: Long,
+    val categoryId: Long,
     val itemName: String,
     val totalPrice: Int,
-    val checked: Boolean
+    val memo: String
+    // val checked: Boolean
 )
 
-data class ExpenseCategory(
+data class ExpenseByCategory(
     val categoryName: String,
-    val recordList: List<ExpenseDailyRecordByCategory>,
+    // val categoryId: Long,
+    val recordList: List<ExpenseDailyRecord>,
     val totalPrice: Int
 )
 

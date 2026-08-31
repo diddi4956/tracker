@@ -11,6 +11,7 @@ import com.example.tracker.data.dto.ExpenseDailyPriceDto
 import com.example.tracker.data.dto.ExpenseTrackingDto
 import com.example.tracker.data.dto.ExpenseWholeCircleDto
 import com.example.tracker.data.entity.ExpenseRecord
+import com.example.tracker.ui.daily.ExpenseDailyRecord
 import com.example.tracker.ui.daily.ExpenseRecordForm
 
 @Dao
@@ -34,8 +35,9 @@ interface ExpenseRecordDao {
     @Query("SELECT * FROM expense_record WHERE subCategoryId = :subCategoryId")
     suspend fun getSubCategoryId(subCategoryId: Long): List<ExpenseRecord>
 
-    @Query("SELECT * FROM expense_record WHERE date = :date")
-    suspend fun getByDate(date: String): List<ExpenseRecord>
+    @Query("SELECT r.id AS recordId, c.name AS categoryName, r.subCategoryId AS subCategoryId, i.name AS itemName, (r.unitPrice * r.quantity) AS totalPrice, r.memo AS memo, c.categoryId AS categoryId " +
+            "FROM expense_record AS r LEFT JOIN item_definition AS i ON r.itemId = i.id LEFT JOIN expense_subcategory_definition AS c ON r.subCategoryId = c.id WHERE date = :date")
+    suspend fun getByDate(date: String): List<ExpenseDailyRecord>
 
     // 원하는 기간에 따라 날짜, 서브카테고리를 가져옴. 아이템이 아닌 서브카테고리별로 체크(ㅇㅇ샴푸 등이 아닌 헤어오일, 헤어세척비누?뭐 이런식)
     @Query("SELECT date, subCategoryId FROM expense_record WHERE date BETWEEN :start AND :end")
