@@ -12,7 +12,7 @@ import com.example.tracker.data.entity.ItemDefinition
 data class DailyUiState(
     val date: String = "", // loadDailyData()
     // expense
-    val expenses: List<ExpenseByCategory> = emptyList(), // loadDailyData()
+    val dailyExpenses: List<ExpenseByCategory> = emptyList(), // loadDailyData()
 
     val expenseRecordForm: ExpenseRecordForm? = null,
     val itemCandidates: List<ItemDefinition> = emptyList(),
@@ -21,7 +21,7 @@ data class DailyUiState(
     val itemForm: ItemDefinition? = null,
 
     // habit
-    val habits: List<HabitCategory> = emptyList(), // loadDailyData()
+    val dailyHabits: List<HabitCategory> = emptyList(), // loadDailyData()
 
     val updateHabitCategory: HabitCategoryDefinition? = null,
     val updateHabit: HabitDefinition? = null,

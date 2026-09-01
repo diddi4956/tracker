@@ -99,10 +99,14 @@ class  DailyViewModel(
             val conditionRecords = conditionRecordDao.getDailyList(date)
             val conditionList = conditionDefinitionDao.getDefinitionList()
 
-            val expenseByCategory = expenseRecords.groupBy{it.categoryId}.map{record -> ExpenseByCategory(record.categoryName, record.)}
+            // val 결과목록 = 원본목록.map { 원본한개 ->
+            //    결과객체(...)
+            //}
+            val expenseByCategory = expenseRecords.groupBy{record -> record.categoryId}.map{(_, records) -> ExpenseByCategory(records.firstOrNull()?.categoryName ?: "-", records, records.sumOf{record -> record.totalPrice})}
+            val habits = habitRecords.groupBy{record -> record.categoryId}.map{(_, records) -> HabitCategory(records.firstOrNull()?.categoryName ?:"-", records)}
+            val conditions = conditionRecords.groupBy{record -> record.tagId}.map{(_,records) -> ConditionDailyListByTag(records.firstOrNull()?.tagName ?:"-", records) }
 
-            val expenseByCategory =
-            dailyUiState = dailyUiState.copy(expenses = expenseByCategory, habits = habitRecords, conditions = conditionRecords, co) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
+            dailyUiState = dailyUiState.copy(dailyExpenses = expenseByCategory, dailyHabits = habits, dailyConditions = conditions, co) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
 
             // 4. dto -> UiState 변환
             // 5. dailyUiState 갱신
