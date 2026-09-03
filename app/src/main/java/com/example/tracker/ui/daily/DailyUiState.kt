@@ -30,9 +30,9 @@ data class DailyUiState(
     val dailyConditions: List<ConditionDailyListByTag> = emptyList(), // loadDailyData()
     val conditionDefinitionListNotChecked: List<ConditionDefinition> = emptyList(), // loadDailyData()
 
-    val conditionSearchText: List<ConditionDefinition> =emptyList(), // searchCondition(string: String)
+    val conditionSearchResult: List<ConditionDefinition> =emptyList(), // searchCondition(string: String)
     val conditionForm: ConditionDefinition? = null,
-    val tagList: List<ConditionTag> = emptyList(),
+    val tagSearchResult: List<ConditionTag> = emptyList(),
     val conditionTagForm: ConditionTag? = null, // 기본값이 없으면 DailyUiState()라고 빈 초기 상태를 기본기없이 만들수가 없음 아 이게 지금 생성자라서 그런가
     //
     val isLoading: Boolean = false
@@ -62,7 +62,8 @@ data class ExpenseRecordForm(
     val subCategoryName: String,
     val subCategoryId: Long,
     val unitPrice: Long,
-    val quantity: Int
+    val quantity: Int,
+    val memo: String
     // State에는 화면에 직접 안 보이는 값이 있어도 돼. State는 “화면에 글자로 출력할 값 목록”이 아니라 현재 UI가 동작하기 위해 필요한 데이터 전체라고 보면 돼.
 )
 

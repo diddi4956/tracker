@@ -90,6 +90,7 @@ class  DailyViewModel(
 
     fun changeDate(date: String){
         dailyUiState = dailyUiState.copy(date = date)
+        loadDailyData()
     }
 
     // 1. DB에서 선택 날짜의 지출 기록을 가져옴
@@ -119,15 +120,24 @@ class  DailyViewModel(
 
     // 지출내역(record) 추가 팝업
     fun openAddExpenseRecord(){
-        dailyUiState = dailyUiState.copy(expenseRecordForm = ExpenseRecordForm(0L, "", 0L, "", 0L, 0L, 0))
+        dailyUiState = dailyUiState.copy(expenseRecordForm = ExpenseRecordForm(0L, "", 0L, "", 0L, 0L, 0, ""))
     }
 
     // 2. 지출내역 추가.
-    fun addExpenseRecord(record: ExpenseRecordForm){
-       viewModelScope.launch{
-           expenseRecordDao.addExpenseRecord(record)
-           loadDailyData()
-       }
+    fun addExpenseRecord(form: ExpenseRecordForm) {
+        viewModelScope.launch {
+            val record = ExpenseRecord(
+                date = dailyUiState.date,
+                subCategoryId = form.subCategoryId,
+                itemId = form.itemId,
+                unitPrice = form.unitPrice,
+                quantity = form.quantity,
+                memo = form.memo
+            ) // 폼의 내용을 받아서 디비에 넣기위해 ExpenseRecord로 가공
+
+            expenseRecordDao.addExpenseRecord(record)
+            loadDailyData()
+        }
     }
 
     //
@@ -139,9 +149,18 @@ class  DailyViewModel(
 
     }
      // 3. 지출내역 수정
-    fun updateExpenseRecord(recordId: Long) {
+    fun updateExpenseRecord(form: ExpenseRecordForm) {
         viewModelScope.launch{
-            val record = expenseRecordDao.getRecord(recordId)
+            // val record = expenseRecordDao.getRecord(recordId)
+            val record = ExpenseRecord(
+                id = form.recordId,
+                date = dailyUiState.date,
+                subCategoryId = form.subCategoryId,
+                itemId = form.itemId,
+                unitPrice = form.unitPrice,
+                quantity = form.quantity,
+                memo = form.memo
+            )
             val candidates = expenseRecordDao.findSameExpenseRecord(record.date, record.itemId, record.subCategoryId, record.id)
 
             if(candidates == null) { // 중복이 없으면 DB 수정
@@ -173,7 +192,6 @@ class  DailyViewModel(
         viewModelScope.launch{
             val items = itemDefinitionDao.getByName(itemName)
             dailyUiState = dailyUiState.copy(itemCandidates = items)
-            loadDailyData()
         }
     }
 
@@ -344,7 +362,7 @@ class  DailyViewModel(
     fun searchCondition(string: String){
         viewModelScope.launch{
             val conditions = conditionDefinitionDao.getByName(string)
-            dailyUiState = dailyUiState.copy(conditionSearchText = conditions)
+            dailyUiState = dailyUiState.copy(conditionSearchResult = conditions)
         }
     }
 
@@ -416,8 +434,8 @@ class  DailyViewModel(
     // 6. 태그 검색하기
     fun searchTag(string: String){
         viewModelScope.launch{
-            conditionDefinitionDao.getByTagName(string)
-            loadDailyData()
+            val tags = conditionDefinitionDao.getByTagName(string)
+            dailyUiState = dailyUiState.copy(tagSearchResult = tags)
         }
     }
 

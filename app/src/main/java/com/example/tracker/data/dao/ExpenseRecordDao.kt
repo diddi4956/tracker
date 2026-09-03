@@ -81,7 +81,7 @@ interface ExpenseRecordDao {
     } // 기존에 지출이 기록돼있으면 업데이트, 아니면 새로 추가
 
     //recordId를 사용해 DailyUiState의 ExpenseRecordFrom(ExpenseRecord+itemName,subCategoryName)을 채우는 쿼리
-    @Query("SELECT i.name AS itemName, r.itemId AS itemId, s.name AS subCategoryName, r.id AS recordId, r.subCategoryId AS subCategoryId, r.unitPrice AS unitPrice, r.quantity AS quantity" +
+    @Query("SELECT i.name AS itemName, r.itemId AS itemId, s.name AS subCategoryName, r.id AS recordId, r.subCategoryId AS subCategoryId, r.unitPrice AS unitPrice, r.quantity AS quantity, r.memo AS memo" +
             " FROM expense_record AS r INNER JOIN item_definition AS i ON r.itemId = i.id INNER JOIN expense_subcategory_definition AS s ON r.subCategoryId = s.id" +
             " WHERE r.id = :recordId")// 외래키라서 LEFT JOIN이 아니고 INNER JOIN 써도딤
     suspend fun getRecordData(recordId: Long): ExpenseRecordForm
