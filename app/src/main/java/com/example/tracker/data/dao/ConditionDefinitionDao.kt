@@ -51,8 +51,11 @@ interface ConditionDefinitionDao {
     @Query("SELECT * FROM condition_tag WHERE name = :name")
     suspend fun getByTagName(name: String): List<ConditionTag>
 
-    @Query("SELECT * FROM condition_definition ORDER BY frequency DESC, name ASC")
-    suspend fun getDefinitionList(): List<ConditionDefinition>
+    @Query("SELECT d.* FROM condition_definition AS d LEFT JOIN condition_record AS r " +
+            "ON d.id = r.conditionDefinitionId AND date = :date " +
+            "WHERE r.id IS NULL " +
+            "ORDER BY frequency DESC, name ASC")
+    suspend fun getDefinitionList(date: String): List<ConditionDefinition>
 
     @Transaction // 태그가 없는 데피니션 생성 불가
     suspend fun insertDefinitionWithTag(definition: ConditionDefinition, tagIds: List<Long>){

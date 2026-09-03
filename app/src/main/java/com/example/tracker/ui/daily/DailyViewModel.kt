@@ -88,6 +88,10 @@ class  DailyViewModel(
 
     // function
 
+    fun changeDate(date: String){
+        dailyUiState = dailyUiState.copy(date = date)
+    }
+
     // 1. DB에서 선택 날짜의 지출 기록을 가져옴
     fun loadDailyData(){
         viewModelScope.launch { // DAO함수가 suspend fun이면 그냥 호출 못하고 코루틴안에서 해야하므로 하는것.
@@ -97,7 +101,7 @@ class  DailyViewModel(
             val expenseRecords = expenseRecordDao.getByDate(date)
             val habitRecords = habitRecordDao.getDailyList(date)
             val conditionRecords = conditionRecordDao.getDailyList(date)
-            val conditionList = conditionDefinitionDao.getDefinitionList()
+            val conditionList = conditionDefinitionDao.getDefinitionList(date)
 
             // val 결과목록 = 원본목록.map { 원본한개 ->
             //    결과객체(...)
@@ -106,7 +110,7 @@ class  DailyViewModel(
             val habits = habitRecords.groupBy{record -> record.categoryId}.map{(_, records) -> HabitCategory(records.firstOrNull()?.categoryName ?:"-", records)}
             val conditions = conditionRecords.groupBy{record -> record.tagId}.map{(_,records) -> ConditionDailyListByTag(records.firstOrNull()?.tagName ?:"-", records) }
 
-            dailyUiState = dailyUiState.copy(dailyExpenses = expenseByCategory, dailyHabits = habits, dailyConditions = conditions, co) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
+            dailyUiState = dailyUiState.copy(dailyExpenses = expenseByCategory, dailyHabits = habits, dailyConditions = conditions, conditionDefinitionListNotChecked =  conditionList) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
 
             // 4. dto -> UiState 변환
             // 5. dailyUiState 갱신
@@ -119,7 +123,7 @@ class  DailyViewModel(
     }
 
     // 2. 지출내역 추가.
-    fun addExpenseRecord(record: ExpenseRecord){
+    fun addExpenseRecord(record: ExpenseRecordForm){
        viewModelScope.launch{
            expenseRecordDao.addExpenseRecord(record)
            loadDailyData()
@@ -127,16 +131,17 @@ class  DailyViewModel(
     }
 
     //
-    fun openUpdateExpenseRecord(record: ExpenseRecord){
+    fun openUpdateExpenseRecord(recordId: Long){
         viewModelScope.launch{
-            val formData = expenseRecordDao.getRecordData(record.id)
+            val formData = expenseRecordDao.getRecordData(recordId)
             dailyUiState = dailyUiState.copy(expenseRecordForm = formData)
         }
 
     }
      // 3. 지출내역 수정
-    fun updateExpenseRecord(record: ExpenseRecord) {
+    fun updateExpenseRecord(recordId: Long) {
         viewModelScope.launch{
+            val record = expenseRecordDao.getRecord(recordId)
             val candidates = expenseRecordDao.findSameExpenseRecord(record.date, record.itemId, record.subCategoryId, record.id)
 
             if(candidates == null) { // 중복이 없으면 DB 수정
@@ -155,8 +160,9 @@ class  DailyViewModel(
 //    }
 
     // 4. 리코드 삭제
-    fun deleteExpenseRecord(record: ExpenseRecord){
+    fun deleteExpenseRecord(recordId: Long){
         viewModelScope.launch{
+            val record = expenseRecordDao.getRecord(recordId)
             expenseRecordDao.delete(record)
             loadDailyData()
         }
@@ -337,8 +343,8 @@ class  DailyViewModel(
     // 1. 검색창
     fun searchCondition(string: String){
         viewModelScope.launch{
-            conditionDefinitionDao.getByName(string)
-            loadDailyData()
+            val conditions = conditionDefinitionDao.getByName(string)
+            dailyUiState = dailyUiState.copy(conditionSearchText = conditions)
         }
     }
 
