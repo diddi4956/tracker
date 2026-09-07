@@ -23,6 +23,9 @@ import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.HabitRecord
 import com.example.tracker.data.entity.ItemDefinition
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /*
 1. AppDatabase에 Entity/DAO 등록 확인
@@ -84,9 +87,14 @@ class  DailyViewModel(
 
     // 제네릭: 함수 설계시, 매개변수의 타입을 지정하지 않음. 자바로치면, 오버라이드 함수이름은 같아도 매개변수가 다르면 다른함수가 되므로 다양한 타입의 매개변수를 받으면서 같은 펑션을 쓰고싶은경우 열심히 생성읋 해야한다는 단점을 극복함.
     var  dailyUiState by mutableStateOf(DailyUiState()) // 기본값이 없는것들이 있어서 에러라나
-        private set // val이면 이게 안되네 변수인건가 setter의 접근권한을 바꾸는거 val 은 읽기전용으로 getter만 있다?라던가? 뭘까?
+        private set // setter의 접근권한을 바꾸는거 val 은 읽기전용으로 getter만 있다?라던가? 뭘까?
 
     // function
+
+    init {
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault() ). format (Date())
+        changeDate(today)
+    }
 
     fun changeDate(date: String){
         dailyUiState = dailyUiState.copy(date = date)
@@ -400,7 +408,7 @@ class  DailyViewModel(
     fun openUpdateCondition(condition: ConditionDefinition){
         viewModelScope.launch{
             val tagList = conditionDefinitionDao.findTagByConditionId(condition.id)
-            dailyUiState = dailyUiState.copy(conditionForm = condition, tagList = tagList)
+            dailyUiState = dailyUiState.copy(conditionForm = condition, tagSearchResult = tagList)
         }
 
     }
