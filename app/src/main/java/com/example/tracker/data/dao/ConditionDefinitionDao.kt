@@ -57,6 +57,9 @@ interface ConditionDefinitionDao {
             "ORDER BY frequency DESC, name ASC")
     suspend fun getDefinitionList(date: String): List<ConditionDefinition>
 
+    @Query("SELECT * FROM condition_tag ")
+    suspend fun getConditionTagList(): List<ConditionTag>
+
     @Transaction // 태그가 없는 데피니션 생성 불가
     suspend fun insertDefinitionWithTag(definition: ConditionDefinition, tagIds: List<Long>){
         require(tagIds.isNotEmpty()){ // 조건이 false면 실행 그럼 if문쓰면 안되나 굳이 require써야함?

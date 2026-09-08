@@ -18,11 +18,13 @@ import com.example.tracker.data.entity.ConditionTag
 
 data class TrackingUiState (
 
-    val date: String ="",
+    // val date: String ="",
+    val startDate: String = "",
+    val endDate: String = "",
     // expense
     val expenseTrackingOption: List<String> = emptyList(), // loadTrackingData() {체크형리스트, 카테고리별 원그래프 등등의 리스트}
 
-    val selectCategory: List<String> = emptyList(), // loadTrackingData() {tracking, circleGraphingByCategory공용}
+    val selectCategory: List<String> = List("5"), // loadTrackingData() {tracking, circleGraphingByCategory공용}
     val expenseTracking: List<ExpenseTrackingDto> = emptyList(),
     // val subCategory: List<String>, // circleGraphingByCategory에서 빼서 쓰기..
 

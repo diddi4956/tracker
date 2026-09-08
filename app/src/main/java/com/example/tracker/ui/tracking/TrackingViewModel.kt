@@ -30,18 +30,21 @@ class TrackingViewModel (
         changeDate(today)
     }
 
-    fun changeDate(date: String){
-        trackingUiState = trackingUiState.copy(date = date)
-        loadTrackingData()
-    }
+//    fun changeDate(date: String){
+//        trackingUiState = trackingUiState.copy(date = date)
+//        loadTrackingData()
+//    }
 
+    fun changePeriod(startDate: String, endDate: String){
+        trackingUiState = trackingUiState.copy(startDate = startDate, endDate = endDate)
+    }
     fun loadTrackingData(){
         viewModelScope.launch{
             val date = trackingUiState.date
-            val selectCategory =
-            val conditionTagList
+            // val selectCategory = 이건 빈리스트가 아니어야하는데
+            val conditionTagList = conditionDefinitionDao.getConditionTagList()
 
-            trackingUiState = trackingUiState.copy(date = , selectCategory = , getConditionTagList = )
+            trackingUiState = trackingUiState.copy(date = date, getConditionTagList = conditionTagList)
         }
     }
 
@@ -60,61 +63,67 @@ class TrackingViewModel (
         }
     }
 
-    fun wholeCircleGraphing(){
+    fun wholeCircleGraphing(start: String, end: String){
         viewModelScope.launch{
-
-            trackingUiState = trackingUiState.copy(wholeCircleGraphing =)
+            val graph = expenseRecordDao.wholeCircleGraphing(start, end)
+            trackingUiState = trackingUiState.copy(wholeCircleGraphing = graph)
         }
     }
 
-    fun calcDailyExpense(){
+    fun calcDailyExpense(start: String, end: String){
         viewModelScope.launch{
-
-            trackingUiState = trackingUiState.copy(calcDailyExpense= )
+            val graph = expenseRecordDao.calcDailyExpense(start, end)
+            trackingUiState = trackingUiState.copy(calcDailyExpense= graph)
         }
     }
 
     // habit
-    fun habitTrackingByDefinition(){
+    fun habitTrackingByDefinition(start: String, end: String){
         viewModelScope.launch{
-
-            trackingUiState = trackingUiState.copy(habitTrackingByDefinition = , habitDefinitionList = )
+            val width = habitRecordDao.trackingByDefinition(start, end)
+            val length = habitRecordDao.getDefinitionList(start, end)
+            trackingUiState = trackingUiState.copy(habitTrackingByDefinition = width, habitDefinitionList = length)
         }
     }
 
-    fun habitTrackingByCategory(){
+    fun habitTrackingByCategory(start: String, end: String){
         viewModelScope.launch {
-
-            trackingUiState = trackingUiState.copy(habitTrackingByCategory = , habitCategoryList = )
+            val width = habitRecordDao.trackingByCategory(start, end)
+            val length = habitRecordDao.getCategoryList(start, end)
+            trackingUiState = trackingUiState.copy(habitTrackingByCategory = width, habitCategoryList = length)
         }
     }
 
-    fun monthlyByCategory(){
+    fun monthlyByCategory(categoryId: Long, start: String, end:String){
         viewModelScope.launch {
-
-            trackingUiState = trackingUiState.copy(monthlyByCategory = )
+            val monthlyData = habitRecordDao.getMonthlyByCategory(categoryId, start, end)
+            trackingUiState = trackingUiState.copy(monthlyByCategory = monthlyData)
         }
     }
 
     // condition
-    fun conditionTrackingByDefinition(){
+    fun conditionTrackingByDefinition(start:String, end: String, tags: List<ConditionTag>){
         viewModelScope.launch {
-
-            trackingUiState = trackingUiState.copy(conditionTrackingByDefinition = , conditionDefinitionList = )
+            val width = conditionRecordDao.trackingByDefinition(start, end)
+            val tagIds = tags.map{tag -> tag.id} // 이거 맞나?
+            val length = conditionRecordDao.getDefinitionList(tagIds) // 내가 짠 쿼리에 의문인데...이게 맞나? 아래 태그에 관한것도 세로축을 태그아이디를 넣고 돌리는데 데피니션인데도 태그기반으로 찾는게 맞나? 왜이렇게 했찡?
+            trackingUiState = trackingUiState.copy(conditionTrackingByDefinition = width, conditionDefinitionList = length)
         }
     }
 
-    fun conditionTrackingByTag(tag: List<ConditionTag>){ // getConditionTagList의 결과를 받음
+    fun conditionTrackingByTag(start: String, end: String, tags: List<ConditionTag>){ // getConditionTagList의 결과를 받음
         viewModelScope.launch{
-
-            trackingUiState = trackingUiState.copy(conditionTrackingByTag = , conditionTagList = )
+            val tagIds = tags.map{tag -> tag.id}
+            val width = conditionRecordDao.trackingByTag(tagIds, start, end)
+            val length = conditionRecordDao.getTagList(tagIds)
+            trackingUiState = trackingUiState.copy(conditionTrackingByTag = width, conditionTagList = length)
         }
     }
 
-    fun conditionMonthlyByTag(){
+    fun conditionMonthlyByTag(tagId: Long, start: String, end: String){
         viewModelScope.launch{
-
-            trackingUiState = trackingUiState.copy(conditionMonthlyByTag = )
+            val trackingData = conditionRecordDao.getMonthlyByTag(tagId, start, end)
+            trackingUiState = trackingUiState.copy(conditionMonthlyByTag = trackingData)
         }
     }
 }
