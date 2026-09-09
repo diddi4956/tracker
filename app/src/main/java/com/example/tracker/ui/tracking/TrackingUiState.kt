@@ -15,6 +15,8 @@ import com.example.tracker.data.dto.HabitGetMonthlyByCategoryDto
 import com.example.tracker.data.dto.HabitTrackingByCategoryDto
 import com.example.tracker.data.dto.HabitTrackingByDefinitionDto
 import com.example.tracker.data.entity.ConditionTag
+import com.example.tracker.data.model.ExpenseCategory
+import com.example.tracker.data.model.expenseCategories
 
 data class TrackingUiState (
 
@@ -24,7 +26,8 @@ data class TrackingUiState (
     // expense
     val expenseTrackingOption: List<String> = emptyList(), // loadTrackingData() {체크형리스트, 카테고리별 원그래프 등등의 리스트}
 
-    val selectCategory: List<String> = emptyList(), // loadTrackingData() {tracking, circleGraphingByCategory공용}
+    val selectCategory: List<ExpenseCategory> = expenseCategories, // loadTrackingData() {tracking, circleGraphingByCategory공용}
+
     val expenseTracking: List<ExpenseTrackingDto> = emptyList(),
     // val subCategory: List<String>, // circleGraphingByCategory에서 빼서 쓰기..
 
@@ -55,3 +58,8 @@ data class TrackingUiState (
 
     val conditionMonthlyByTag: List<ConditionGetMonthlyByTagDto> = emptyList()
     )
+
+data class ExpenseCategoryOption(
+    val id: Long,
+    val name: String
+)

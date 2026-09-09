@@ -22,10 +22,12 @@ import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.HabitRecord
 import com.example.tracker.data.entity.ItemDefinition
+import com.example.tracker.data.model.expenseCategories
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
 
 /*
 1. AppDatabase에 Entity/DAO 등록 확인
@@ -115,7 +117,10 @@ class  DailyViewModel(
             // val 결과목록 = 원본목록.map { 원본한개 ->
             //    결과객체(...)
             //}
-            val expenseByCategory = expenseRecords.groupBy{record -> record.categoryId}.map{(_, records) -> ExpenseByCategory(records.firstOrNull()?.categoryName ?: "-", records, records.sumOf{record -> record.totalPrice})}
+            val expenseByCategory = expenseCategories.map{category ->
+                val records = expenseRecords.filter{ record -> record.categoryId == category.id}
+                ExpenseByCategory(categoryName = category.name, records, totalPrice =  records.sumOf{record -> record.totalPrice})
+            }
             val habits = habitRecords.groupBy{record -> record.categoryId}.map{(_, records) -> HabitCategory(records.firstOrNull()?.categoryName ?:"-", records)}
             val conditions = conditionRecords.groupBy{record -> record.tagId}.map{(_,records) -> ConditionDailyListByTag(records.firstOrNull()?.tagName ?:"-", records) }
 

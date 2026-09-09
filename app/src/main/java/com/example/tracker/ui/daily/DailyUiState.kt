@@ -8,6 +8,7 @@ import com.example.tracker.data.entity.ExpenseRecord
 import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.ItemDefinition
+import com.example.tracker.data.model.expenseCategories
 
 data class DailyUiState(
     val date: String = "", // loadDailyData()
