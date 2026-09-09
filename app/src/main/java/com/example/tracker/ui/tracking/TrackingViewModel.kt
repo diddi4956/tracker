@@ -30,6 +30,7 @@ class TrackingViewModel (
         Locale.getDefault()
     )
 
+
     init { // 하 기간을 해야하는거군 하 놔
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault() ). format (Date())
         changePeriod(today, today)
