@@ -59,7 +59,3 @@ data class TrackingUiState (
     val conditionMonthlyByTag: List<ConditionGetMonthlyByTagDto> = emptyList()
     )
 
-data class ExpenseCategoryOption(
-    val id: Long,
-    val name: String
-)

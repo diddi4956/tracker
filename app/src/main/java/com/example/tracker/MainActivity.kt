@@ -28,7 +28,7 @@ import com.example.tracker.data.database.DatabaseProvider
 import com.example.tracker.data.entity.DailyEntry
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.items
-import com.example.tracker.ui.daily.DailyPage
+import com.example.tracker.ui.daily.DailyUiState
 
 
 class MainActivity: ComponentActivity() {
@@ -51,8 +51,16 @@ class MainActivity: ComponentActivity() {
         /*  this) 지금 이 MainActivity를 context(함수의 파라미터)로 넘김
          */
 
+        /*
+            MainActivity
+            → Room DB 가져오기
+            → DB에서 DAO 가져오기
+            → DAO를 넣어서 ViewModel 생성
+            → ViewModel을 Compose 화면에 전달
+         */
+
         setContent {
-            DailyPage()
+            DailyUiState()
         }
     }
 }

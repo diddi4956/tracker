@@ -60,7 +60,7 @@ class  DailyViewModel(
     private val habitDefinitionDao: HabitDefinitionDao,
     private val habitCategoryDefinitionDao: HabitCategoryDefinitionDao,
     private val conditionDefinitionDao: ConditionDefinitionDao,
-    private val expenseSubCategoryDao: ExpenseSubCategoryDao
+    //private val expenseSubCategoryDao: ExpenseSubCategoryDao
     /*
     1.
         class DailyViewModel extends ViewModel {
