@@ -3,32 +3,24 @@ package com.example.tracker
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect // (질문12에서 이어짐)
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember // (질문8에서 이어짐)이건가!! 컴포즈꺼네!!
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.example.tracker.data.database.AppDatabase
 import com.example.tracker.data.database.DatabaseProvider
-import com.example.tracker.data.entity.DailyEntry
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.lazy.items
-import com.example.tracker.ui.daily.DailyUiState
+import androidx.lifecycle.ViewModelProvider
+import com.example.tracker.ui.TrackerViewModelFactory
+import com.example.tracker.ui.daily.DailyScreen
+import com.example.tracker.ui.daily.DailyViewModel
+import com.example.tracker.ui.theme.TrackerTheme
+import com.example.tracker.ui.tracking.TrackingScreen
+import com.example.tracker.ui.tracking.TrackingViewModel
 
 
 class MainActivity: ComponentActivity() {
@@ -38,31 +30,49 @@ class MainActivity: ComponentActivity() {
         = 자바의 super()와 비슷 = 부모부분을 먼저 초기화(부모의 필드값을 먼저 채움)
      */
     override fun onCreate(savedInstanceState: Bundle?) {
-        /*  2. Bundle은? 안드로이드 프레임워크가 제공하는 클래스
-            +) 여기서 ?는 null가능성 의미
-            코틀린 문법) 자바에선 (Bundle savedInstanceState)
-         */
         super.onCreate(savedInstanceState)
-        /*  3. 오버라이드는 부모함수를 재정의
-            super.onCreate()는 부모의 onCreate()를 실행하라
-         */
-        // 갑자기 궁금해지네. super.onCreate하면 부모의 객체를 아 객체가 아니구나. 그냥 일단 부모의 내용을 실행하는거구나 메소드니까.
         val db = DatabaseProvider.getDatabase(this)
-        /*  this) 지금 이 MainActivity를 context(함수의 파라미터)로 넘김
-         */
 
-        /*
-            MainActivity
-            → Room DB 가져오기
-            → DB에서 DAO 가져오기
-            → DAO를 넣어서 ViewModel 생성
-            → ViewModel을 Compose 화면에 전달
-         */
+        val factory = TrackerViewModelFactory(db)
+
+        val dailyViewModel = ViewModelProvider(this, factory)[DailyViewModel::class.java]
+        val trackingViewModel = ViewModelProvider(this, factory)[TrackingViewModel::class.java]
 
         setContent {
-            DailyUiState()
+            TrackerTheme {
+                var selectedScreen by remember { mutableStateOf(TrackerScreen.DAILY) }
+
+                Scaffold(
+                    bottomBar = {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = selectedScreen == TrackerScreen.DAILY,
+                                onClick = { selectedScreen = TrackerScreen.DAILY },
+                                icon = { Text("오늘") },
+                                label = { Text("Daily") }
+                            )
+                            NavigationBarItem(
+                                selected = selectedScreen == TrackerScreen.TRACKING,
+                                onClick = { selectedScreen = TrackerScreen.TRACKING },
+                                icon = { Text("기간") },
+                                label = { Text("Tracking") }
+                            )
+                        }
+                    }
+                ) { innerPadding ->
+                    when (selectedScreen) {
+                        TrackerScreen.DAILY -> DailyScreen(dailyViewModel, Modifier.padding(innerPadding))
+                        TrackerScreen.TRACKING -> TrackingScreen(trackingViewModel, Modifier.padding(innerPadding))
+                    }
+                }
+            }
         }
     }
+}
+
+private enum class TrackerScreen {
+    DAILY,
+    TRACKING
 }
 
 /*

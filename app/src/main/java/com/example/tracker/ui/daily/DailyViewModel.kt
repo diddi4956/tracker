@@ -59,8 +59,7 @@ class  DailyViewModel(
     private val itemDefinitionDao: ItemDefinitionDao,
     private val habitDefinitionDao: HabitDefinitionDao,
     private val habitCategoryDefinitionDao: HabitCategoryDefinitionDao,
-    private val conditionDefinitionDao: ConditionDefinitionDao,
-    //private val expenseSubCategoryDao: ExpenseSubCategoryDao
+    private val conditionDefinitionDao: ConditionDefinitionDao
     /*
     1.
         class DailyViewModel extends ViewModel {
@@ -77,17 +76,6 @@ class  DailyViewModel(
     => compose는 완성된 상태 객체를 만들고 copy()로 교체하는 방식이라서.
      */
 ): ViewModel(){
-    // state
-
-    /*
-    "var age = 20
-        private set"
-    은
-    "fun getAge() // public
-    private fun setAge()" 과 같다. 코틀린 문법이고, 아래거를 생략해주는거임. 프로퍼티선언 + getter + setter를 한꺼번에 쓰는 문법.
-     */
-
-    // 제네릭: 함수 설계시, 매개변수의 타입을 지정하지 않음. 자바로치면, 오버라이드 함수이름은 같아도 매개변수가 다르면 다른함수가 되므로 다양한 타입의 매개변수를 받으면서 같은 펑션을 쓰고싶은경우 열심히 생성읋 해야한다는 단점을 극복함.
     var  dailyUiState by mutableStateOf(DailyUiState()) // 기본값이 없는것들이 있어서 에러라나
         private set // setter의 접근권한을 바꾸는거 val 은 읽기전용으로 getter만 있다?라던가? 뭘까?
 
@@ -136,6 +124,10 @@ class  DailyViewModel(
         dailyUiState = dailyUiState.copy(expenseRecordForm = ExpenseRecordForm(0L, "", 0L, "", 0L, 0L, 0, ""))
     }
 
+    fun closeExpenseRecordForm(){
+        dailyUiState = dailyUiState.copy(expenseRecordForm = null)
+    }
+
     // 2. 지출내역 추가.
     fun addExpenseRecord(form: ExpenseRecordForm) {
         viewModelScope.launch {
@@ -153,7 +145,7 @@ class  DailyViewModel(
         }
     }
 
-    //
+    // 수정팝업
     fun openUpdateExpenseRecord(recordId: Long){
         viewModelScope.launch{
             val formData = expenseRecordDao.getRecordData(recordId)
@@ -161,6 +153,11 @@ class  DailyViewModel(
         }
 
     }
+
+    fun closeUpdateExpenseRecord(){
+        dailyUiState = dailyUiState.copy(expenseRecordForm = null)
+    }
+    
      // 3. 지출내역 수정
     fun updateExpenseRecord(form: ExpenseRecordForm) {
         viewModelScope.launch{
@@ -183,13 +180,6 @@ class  DailyViewModel(
         }
     }
 
-//    // 리코드에 대한 팝업(2,3번 전 작업)
-//    fun loadExpenseRecord(recordId: Long){
-//        viewModelScope.launch{
-//            val updateRecord =  expenseRecordDao.getRecordData(recordId)
-//            dailyUiState = dailyUiState.copy(updateRecord = updateRecord)
-//        }
-//    }
 
     // 4. 리코드 삭제
     fun deleteExpenseRecord(recordId: Long){
@@ -211,6 +201,10 @@ class  DailyViewModel(
     // 아이템 추가 팝업 (초반에 세팅되는 데이터가 달라 추가와 수정 분리함)
     fun openAddItem(){
         dailyUiState = dailyUiState.copy(itemForm = ItemDefinition(subCategoryId = 0L, name = "", store = null, kcalPerUnit = null, defaultPrice = 0L, memo = ""))
+    }
+
+    fun closeItemForm(){
+        dailyUiState = dailyUiState.copy(itemForm = null)
     }
 
     // 6. 아이템 추가
@@ -305,6 +299,10 @@ class  DailyViewModel(
         dailyUiState = dailyUiState.copy(updateHabit = HabitDefinition(id = 0L, categoryId = 0L, name = "", importance = 0))
     }
 
+    fun closeHabitForm(){
+        dailyUiState = dailyUiState.copy(updateHabit = null)
+    }
+
     // 4. 프로젝트 추가/수정하기
     fun addProject(habitProject: HabitCategoryDefinition){
         viewModelScope.launch{
@@ -320,6 +318,10 @@ class  DailyViewModel(
     //
     fun openAddProject(){
         dailyUiState = dailyUiState.copy(updateHabitCategory = HabitCategoryDefinition(0L,  "", null, null))
+    }
+
+    fun closeHabitCategoryForm(){
+        dailyUiState = dailyUiState.copy(updateHabitCategory = null)
     }
 
     // 5. 프로젝트 수정하기
@@ -397,6 +399,10 @@ class  DailyViewModel(
         dailyUiState = dailyUiState.copy(conditionForm = ConditionDefinition(0L, "", 0L, 0)) // 이거 isActive자리는 기본세팅 어케해야하냐
     }
 
+    fun closeConditionForm(){
+        dailyUiState = dailyUiState.copy(conditionForm = null)
+    }
+
     // 3.
     fun updateCondition(condition: ConditionDefinition){
         viewModelScope.launch{
@@ -467,6 +473,10 @@ class  DailyViewModel(
     //
     fun openAddTag(){
         dailyUiState = dailyUiState.copy(conditionTagForm = ConditionTag(0L, ""))
+    }
+
+    fun closeConditionTagForm(){
+        dailyUiState = dailyUiState.copy(conditionTagForm = null)
     }
 
     // 8. 태그 수정하기
