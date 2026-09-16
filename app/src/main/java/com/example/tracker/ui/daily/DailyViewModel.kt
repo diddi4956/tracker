@@ -212,7 +212,15 @@ class  DailyViewModel(
             val candidate = expenseSubCategoryDao.duplicationTest(null, subCategory.categoryId, subCategory.name)
 
             if(candidate.isEmpty()){
-                expenseSubCategoryDao.insert(subCategory)
+                val insertedId = expenseSubCategoryDao.insert(subCategory)
+                dailyUiState = dailyUiState.copy(
+                    expenseRecordForm = dailyUiState.expenseRecordForm?.copy(
+                        subCategoryName = subCategory.name,
+                        subCategoryId = insertedId
+                    ),
+                    expenseSubCategoryCandidates = emptyList(),
+                    subCategoryForm = null
+                )
             }
         }
     }
@@ -262,7 +270,16 @@ class  DailyViewModel(
             // dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) //candidates가 있으면 true
 
             if(candidates.isEmpty()){ // 팝업을 열지 못하면(중복이 없으면) insert, 페이지 리로드
-                itemDefinitionDao.insert(item)
+                val insertedId = itemDefinitionDao.insert(item)
+                dailyUiState = dailyUiState.copy(
+                    expenseRecordForm = dailyUiState.expenseRecordForm?.copy(
+                        itemName = item.name,
+                        itemId = insertedId,
+                        unitPrice = item.defaultPrice
+                    ),
+                    itemCandidates = emptyList(),
+                    itemForm = null
+                )
             }
 
         }
@@ -339,6 +356,14 @@ class  DailyViewModel(
         dailyUiState = dailyUiState.copy(updateHabit = habit)
     }
 
+    fun loadHabitForUpdate(habitDefinitionId: Long){
+        viewModelScope.launch {
+            habitDefinitionDao.findDefinition(habitDefinitionId)?.let { habit ->
+                dailyUiState = dailyUiState.copy(updateHabit = habit)
+            }
+        }
+    }
+
     // 해빗데피니션 추가 팝업
     fun openAddHabit(){
         dailyUiState = dailyUiState.copy(updateHabit = HabitDefinition(id = 0L, categoryId = 0L, name = "", importance = 0))
@@ -406,6 +431,15 @@ class  DailyViewModel(
         viewModelScope.launch{
             habitDefinitionDao.delete(habit)
             loadDailyData()
+        }
+    }
+
+    fun deleteHabit(habitDefinitionId: Long){
+        viewModelScope.launch {
+            habitDefinitionDao.findDefinition(habitDefinitionId)?.let { habit ->
+                habitDefinitionDao.delete(habit)
+                loadDailyData()
+            }
         }
     }
 

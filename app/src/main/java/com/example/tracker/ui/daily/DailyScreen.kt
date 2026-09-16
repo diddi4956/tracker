@@ -34,9 +34,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.tracker.data.dto.HabitGetDailyListDto
 import com.example.tracker.data.entity.ConditionCheckRecord
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
+import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.HabitRecord
 import com.example.tracker.data.entity.ItemDefinition
 import java.text.NumberFormat
@@ -51,6 +53,7 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
     val state = viewModel.dailyUiState
     var selectedExpenseCategoryId by remember { mutableStateOf<Long?>(null) }
     var pendingSubCategoryName by remember { mutableStateOf("") }
+    var habitPendingDelete by remember { mutableStateOf<HabitGetDailyListDto?>(null) }
 
     LazyColumn(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -99,6 +102,18 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
             items(state.dailyHabits) { project ->
                 HabitProjectCard(
                     project = project,
+                    onAddHabit = {
+                        val categoryId = project.habitList.firstOrNull()?.categoryId
+                            ?: return@HabitProjectCard
+                        viewModel.openUpdateHabit(
+                            HabitDefinition(
+                                id = 0L,
+                                categoryId = categoryId,
+                                name = "",
+                                importance = 0
+                            )
+                        )
+                    },
                     onHabitChecked = { habit ->
                         habit.id?.let { habitDefinitionId ->
                             viewModel.checkingHabit(
@@ -110,6 +125,12 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                                 )
                             )
                         }
+                    },
+                    onEditHabit = { habit ->
+                        habit.id?.let(viewModel::loadHabitForUpdate)
+                    },
+                    onDeleteHabit = { habit ->
+                        habitPendingDelete = habit
                     }
                 )
             }
@@ -181,8 +202,6 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
             onDismiss = viewModel::closeSubCategoryForm,
             onSave = { subCategory ->
                 viewModel.addSubCategory(subCategory)
-                viewModel.closeSubCategoryForm()
-                viewModel.searchSubCategory(subCategory.categoryId, "")
             }
         )
     }
@@ -193,7 +212,6 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
             onDismiss = viewModel::closeItemForm,
             onSave = { item ->
                 viewModel.addItem(item)
-                viewModel.closeItemForm()
             }
         )
     }
@@ -209,6 +227,44 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                     viewModel.updateProject(project)
                 }
                 viewModel.closeHabitCategoryForm()
+            }
+        )
+    }
+
+    state.updateHabit?.let { habitForm ->
+        HabitDefinitionDialog(
+            initialHabit = habitForm,
+            onDismiss = viewModel::closeHabitForm,
+            onSave = { habit ->
+                if (habit.id == 0L) {
+                    viewModel.addHabit(habit)
+                } else {
+                    viewModel.updateHabit(habit)
+                }
+                viewModel.closeHabitForm()
+            }
+        )
+    }
+
+    habitPendingDelete?.let { habit ->
+        AlertDialog(
+            onDismissRequest = { habitPendingDelete = null },
+            title = { Text("습관 삭제") },
+            text = { Text("${habit.name ?: "이 습관"}을 삭제할까요?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        habit.id?.let(viewModel::deleteHabit)
+                        habitPendingDelete = null
+                    }
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { habitPendingDelete = null }) {
+                    Text("취소")
+                }
             }
         )
     }
@@ -763,7 +819,10 @@ private fun utcMillisToDateString(millis: Long): String {
 @Composable
 private fun HabitProjectCard(
     project: HabitCategory,
-    onHabitChecked: (com.example.tracker.data.dto.HabitGetDailyListDto) -> Unit
+    onAddHabit: () -> Unit,
+    onHabitChecked: (HabitGetDailyListDto) -> Unit,
+    onEditHabit: (HabitGetDailyListDto) -> Unit,
+    onDeleteHabit: (HabitGetDailyListDto) -> Unit
 ) {
     val actualHabits = project.habitList.filter { habit ->
         habit.id != null && habit.name != null
@@ -771,10 +830,19 @@ private fun HabitProjectCard(
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = project.categoryName,
-                style = MaterialTheme.typography.titleMedium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = project.categoryName,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                TextButton(onClick = onAddHabit) {
+                    Text("추가")
+                }
+            }
 
             if (actualHabits.isEmpty()) {
                 Text(
@@ -795,10 +863,79 @@ private fun HabitProjectCard(
                             checked = habit.checked,
                             onCheckedChange = { onHabitChecked(habit) }
                         )
-                        Text(text = habitName)
+                        Text(
+                            text = habitName,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { onEditHabit(habit) }) {
+                            Text("수정")
+                        }
+                        TextButton(onClick = { onDeleteHabit(habit) }) {
+                            Text("삭제")
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun HabitDefinitionDialog(
+    initialHabit: HabitDefinition,
+    onDismiss: () -> Unit,
+    onSave: (HabitDefinition) -> Unit
+) {
+    var name by remember(initialHabit) { mutableStateOf(initialHabit.name) }
+    var importanceText by remember(initialHabit) {
+        mutableStateOf(initialHabit.importance.toString())
+    }
+    val importance = importanceText.toIntOrNull()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(if (initialHabit.id == 0L) "습관 추가" else "습관 수정")
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("습관 이름") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = importanceText,
+                    onValueChange = { value ->
+                        if (value.all(Char::isDigit)) importanceText = value
+                    },
+                    label = { Text("중요도") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = name.isNotBlank() && importance != null,
+                onClick = {
+                    onSave(
+                        initialHabit.copy(
+                            name = name.trim(),
+                            importance = importance ?: 0
+                        )
+                    )
+                }
+            ) {
+                Text("저장")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
 }

@@ -11,7 +11,7 @@ import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 interface ExpenseSubCategoryDao {
 
     @Insert
-    suspend fun insert(subCategory: ExpenseSubCategoryDefinition)
+    suspend fun insert(subCategory: ExpenseSubCategoryDefinition): Long
 
     @Update
     suspend fun update(subCategoryDao: ExpenseSubCategoryDefinition)

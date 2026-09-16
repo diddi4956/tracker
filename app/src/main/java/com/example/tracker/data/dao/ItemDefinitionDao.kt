@@ -13,7 +13,7 @@ import kotlin.reflect.KCallable
 @Dao
 interface ItemDefinitionDao {
     @Insert
-    suspend fun insert(item: ItemDefinition)
+    suspend fun insert(item: ItemDefinition): Long
 
     @Update
     suspend fun update(item: ItemDefinition)
