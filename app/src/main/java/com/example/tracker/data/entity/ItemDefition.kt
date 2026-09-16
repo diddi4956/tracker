@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey // 어제 분명히 객체 공유와 코드 공�
 data class ItemDefinition(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val subCategoryId: Long, // 근데 생각해보니 서브는 있는데 그냥 익스펜스 데피니션은 안쓰나? 아 서브가 이미 갖고있구나!!
+    // val subCategoryId: Long, // 근데 생각해보니 서브는 있는데 그냥 익스펜스 데피니션은 안쓰나? 아 서브가 이미 갖고있구나!!
     val name: String, // 겹치는거 만들 수 있음
     val store: String? = null,
     val kcalPerUnit: Long? = null,

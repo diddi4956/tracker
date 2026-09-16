@@ -24,8 +24,6 @@ interface ItemDefinitionDao {
     @Query("SELECT * FROM item_definition")
     suspend fun getAll(): List<ItemDefinition>
 
-    @Query("SELECT * FROM item_definition WHERE subCategoryId = :subCategoryId")
-    suspend fun getBySubCategoryId(subCategoryId: Long): List<ItemDefinition>
 
     @Query("SELECT * FROM item_definition WHERE isActive = :isActive")
     suspend fun getActiveItems(isActive:Boolean): List<ItemDefinition>
@@ -38,7 +36,7 @@ interface ItemDefinitionDao {
 
     // 여러 필드들이 동시에 같은 item 데이터 서치
     @Query("SELECT * FROM item_definition " +
-            "WHERE subCategoryId = :subCategoryId AND name = :name AND store = :store AND kcalPerUnit = :kcalPerUnit AND defaultPrice = :defaultPrice AND (:excludeId IS NULL OR id != :excludeId)")
-    suspend fun duplicationTest(subCategoryId: Long, name: String, store: String?, kcalPerUnit: Long?, defaultPrice: Long, excludeId: Long?): List<ItemDefinition>
+            "WHERE name = :name AND store = :store AND kcalPerUnit = :kcalPerUnit AND defaultPrice = :defaultPrice AND (:excludeId IS NULL OR id != :excludeId)")
+    suspend fun duplicationTest(name: String, store: String?, kcalPerUnit: Long?, defaultPrice: Long, excludeId: Long?): List<ItemDefinition>
 
 }

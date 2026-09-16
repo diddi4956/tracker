@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class HabitDefinition(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val categoryId: Long,
+    val categoryId: Long, //
     val name: String,
     val importance: Int,
     val isActive: Boolean = true

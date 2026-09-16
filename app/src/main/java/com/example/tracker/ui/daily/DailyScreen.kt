@@ -2,23 +2,30 @@ package com.example.tracker.ui.daily
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,16 +35,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.tracker.data.entity.ConditionCheckRecord
+import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
+import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitRecord
 import com.example.tracker.data.entity.ItemDefinition
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
     val state = viewModel.dailyUiState
+    var selectedExpenseCategoryId by remember { mutableStateOf<Long?>(null) }
+    var pendingSubCategoryName by remember { mutableStateOf("") }
 
     LazyColumn(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -55,38 +68,50 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
         items(state.dailyExpenses) { category ->
             ExpenseCategoryCard(
                 category = category,
-                onAddExpense = viewModel::openAddExpenseRecord
+                onAddExpense = {
+                    selectedExpenseCategoryId = category.categoryId
+                    viewModel.searchSubCategory(category.categoryId, "")
+                    viewModel.openAddExpenseRecord()
+                }
             )
         }
 
-        item { SectionTitle("습관") }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SectionTitle("습관")
+                Button(
+                    onClick = viewModel::openAddProject,
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("+")
+                }
+            }
+        }
         if (state.dailyHabits.isEmpty()) {
             item { EmptyMessage("등록된 습관이 없어요") }
         } else {
-            items(state.dailyHabits) { category ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(category.categoryName, style = MaterialTheme.typography.titleMedium)
-                        category.habitList.forEach { habit ->
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(
-                                    checked = habit.checked,
-                                    onCheckedChange = {
-                                        viewModel.checkingHabit(
-                                            HabitRecord(
-                                                id = habit.recordId ?: 0L,
-                                                date = state.date,
-                                                habitDefinitionId = habit.id,
-                                                checked = !habit.checked
-                                            )
-                                        )
-                                    }
+            items(state.dailyHabits) { project ->
+                HabitProjectCard(
+                    project = project,
+                    onHabitChecked = { habit ->
+                        habit.id?.let { habitDefinitionId ->
+                            viewModel.checkingHabit(
+                                HabitRecord(
+                                    id = habit.recordId ?: 0L,
+                                    date = state.date,
+                                    habitDefinitionId = habitDefinitionId,
+                                    checked = !habit.checked
                                 )
-                                Text(habit.name)
-                            }
+                            )
                         }
                     }
-                }
+                )
             }
         }
 
@@ -124,9 +149,20 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
     state.expenseRecordForm?.let { form ->
         ExpenseRecordDialog(
             initialForm = form,
-            candidates = state.itemCandidates,
-            onSearch = viewModel::searchItems,
-            onDismiss = viewModel::closeExpenseRecordForm,
+            categoryId = selectedExpenseCategoryId ?: 0L,
+            itemCandidates = state.itemCandidates,
+            subCategoryCandidates = state.expenseSubCategoryCandidates,
+            onSubCategorySearch = viewModel::searchSubCategory,
+            onAddSubCategory = { categoryId, name ->
+                pendingSubCategoryName = name
+                viewModel.openAddSubCategory(categoryId)
+            },
+            onItemSearch = viewModel::searchItems,
+            onAddItem = viewModel::openAddItem,
+            onDismiss = {
+                viewModel.closeExpenseRecordForm()
+                selectedExpenseCategoryId = null
+            },
             onSave = { completedForm ->
                 if (completedForm.recordId == 0L) {
                     viewModel.addExpenseRecord(completedForm)
@@ -134,6 +170,45 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                     viewModel.updateExpenseRecord(completedForm)
                 }
                 viewModel.closeExpenseRecordForm()
+                selectedExpenseCategoryId = null
+            }
+        )
+    }
+
+    state.subCategoryForm?.let { subCategoryForm ->
+        ExpenseSubCategoryDialog(
+            initialSubCategory = subCategoryForm.copy(name = pendingSubCategoryName),
+            onDismiss = viewModel::closeSubCategoryForm,
+            onSave = { subCategory ->
+                viewModel.addSubCategory(subCategory)
+                viewModel.closeSubCategoryForm()
+                viewModel.searchSubCategory(subCategory.categoryId, "")
+            }
+        )
+    }
+
+    state.itemForm?.let { itemForm ->
+        ItemDefinitionDialog(
+            initialItem = itemForm,
+            onDismiss = viewModel::closeItemForm,
+            onSave = { item ->
+                viewModel.addItem(item)
+                viewModel.closeItemForm()
+            }
+        )
+    }
+
+    state.updateHabitCategory?.let { projectForm ->
+        HabitProjectDialog(
+            initialProject = projectForm,
+            onDismiss = viewModel::closeHabitCategoryForm,
+            onSave = { project ->
+                if (project.id == 0L) {
+                    viewModel.addProject(project)
+                } else {
+                    viewModel.updateProject(project)
+                }
+                viewModel.closeHabitCategoryForm()
             }
         )
     }
@@ -143,8 +218,13 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
 @Composable
 private fun ExpenseRecordDialog(
     initialForm: ExpenseRecordForm,
-    candidates: List<ItemDefinition>,
-    onSearch: (String) -> Unit,
+    categoryId: Long,
+    itemCandidates: List<ItemDefinition>,
+    subCategoryCandidates: List<ExpenseSubCategoryDefinition>,
+    onSubCategorySearch: (Long, String) -> Unit,
+    onAddSubCategory: (Long, String) -> Unit,
+    onItemSearch: (String) -> Unit,
+    onAddItem: (String) -> Unit,
     onDismiss: () -> Unit,
     onSave: (ExpenseRecordForm) -> Unit
 ){
@@ -158,6 +238,10 @@ private fun ExpenseRecordDialog(
 
     var quantityText by remember(initialForm){
         mutableStateOf(initialForm.quantity.toString())
+    }
+
+    var subCategoryKeyword by remember(initialForm) {
+        mutableStateOf(initialForm.subCategoryName)
     }
 
     val price = priceText.toLongOrNull()
@@ -179,29 +263,109 @@ private fun ExpenseRecordDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = draft.itemName,
-                    onValueChange = { keyword ->
-                        draft = draft.copy(
-                            itemName = keyword,
-                            itemId = 0L,
-                            subCategoryId = 0L,
-                            subCategoryName = ""
-                        )
-                        onSearch(keyword)
-                    },
-                    label = { Text("아이템 검색") },
-                    singleLine = true
+                Text(
+                    text = "서브카테고리 검색 및 선택",
+                    style = MaterialTheme.typography.titleSmall
                 )
-                if (candidates.isNotEmpty() && draft.itemId == 0L) {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = subCategoryKeyword,
+                        onValueChange = { keyword ->
+                            subCategoryKeyword = keyword
+                            draft = draft.copy(
+                                subCategoryName = keyword,
+                                subCategoryId = 0L,
+                                itemName = "",
+                                itemId = 0L,
+                                unitPrice = 0L
+                            )
+                            priceText = "0"
+                            onSubCategorySearch(categoryId, keyword)
+                        },
+                        label = { Text("서브카테고리 검색") },
+                        enabled = categoryId != 0L,
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(
+                        onClick = { onAddSubCategory(categoryId, subCategoryKeyword) }
+                    ) {
+                        Text("추가")
+                    }
+                }
+
+                if (subCategoryCandidates.isNotEmpty() && draft.subCategoryId == 0L) {
+                    LazyColumn(modifier = Modifier.heightIn(max = 120.dp)) {
+                        items(subCategoryCandidates) { subCategory ->
+                            TextButton(
+                                onClick = {
+                                    subCategoryKeyword = subCategory.name
+                                    draft = draft.copy(
+                                        subCategoryName = subCategory.name,
+                                        subCategoryId = subCategory.id,
+                                        itemName = "",
+                                        itemId = 0L,
+                                        unitPrice = 0L
+                                    )
+                                    priceText = "0"
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(subCategory.name)
+                            }
+                        }
+                    }
+                } else if (subCategoryKeyword.isNotBlank() && draft.subCategoryId == 0L) {
+                    Text(
+                        text = "검색 결과가 없어요",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                if (draft.subCategoryId != 0L) {
+                    Text(
+                        text = "선택: ${draft.subCategoryName}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = draft.itemName,
+                        onValueChange = { keyword ->
+                            draft = draft.copy(
+                                itemName = keyword,
+                                itemId = 0L,
+                                unitPrice = 0L
+                            )
+                            priceText = "0"
+                            onItemSearch(keyword)
+                        },
+                        label = { Text("아이템 검색") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(
+                        onClick = { onAddItem(draft.itemName) }
+                    ) {
+                        Text("추가")
+                    }
+                }
+                if (itemCandidates.isNotEmpty() && draft.itemId == 0L) {
                     LazyColumn(modifier = Modifier.heightIn(max = 160.dp)) {
-                        items(candidates) { item ->
+                        items(itemCandidates) { item ->
                             TextButton(
                                 onClick = {
                                     draft = draft.copy(
                                         itemName = item.name,
                                         itemId = item.id,
-                                        subCategoryId = item.subCategoryId,
                                         unitPrice = item.defaultPrice
                                     )
                                     priceText = item.defaultPrice.toString()
@@ -222,10 +386,6 @@ private fun ExpenseRecordDialog(
                 if (draft.itemId != 0L) {
                     Text(
                         text = "선택한 아이템 Id: ${draft.itemId}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = "서브카테고리 Id: ${draft.subCategoryId}",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -265,6 +425,120 @@ private fun ExpenseRecordDialog(
             TextButton(onClick = onDismiss){
                 Text("취소")
             }
+        }
+    )
+
+}
+
+@Composable
+private fun ExpenseSubCategoryDialog(
+    initialSubCategory: ExpenseSubCategoryDefinition,
+    onDismiss: () -> Unit,
+    onSave: (ExpenseSubCategoryDefinition) -> Unit
+) {
+    var draft by remember(initialSubCategory) {
+        mutableStateOf(initialSubCategory)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("서브카테고리 추가") },
+        text = {
+            OutlinedTextField(
+                value = draft.name,
+                onValueChange = { name -> draft = draft.copy(name = name) },
+                label = { Text("서브카테고리 이름") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(
+                enabled = draft.name.isNotBlank(),
+                onClick = { onSave(draft) }
+            ) {
+                Text("추가")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
+}
+
+@Composable // 얜 왜있는거?
+private fun ItemDefinitionDialog(
+    initialItem: ItemDefinition,
+    onDismiss: () -> Unit,
+    onSave: (ItemDefinition) -> Unit
+) {
+    var draft by remember(initialItem) { mutableStateOf(initialItem) }
+    var kcalText by remember(initialItem) {
+        mutableStateOf(initialItem.kcalPerUnit?.toString().orEmpty())
+    }
+    var defaultPriceText by remember(initialItem) {
+        mutableStateOf(initialItem.defaultPrice.toString())
+    }
+
+    val kcal = kcalText.toLongOrNull()
+    val defaultPrice = defaultPriceText.toLongOrNull()
+    val canSave = draft.name.isNotBlank() && defaultPrice != null
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("아이템 추가") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = draft.name,
+                    onValueChange = { name -> draft = draft.copy(name = name) },
+                    label = { Text("아이템 이름") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = draft.store.orEmpty(),
+                    onValueChange = { store -> draft = draft.copy(store = store.ifBlank { null }) },
+                    label = { Text("구입처") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = kcalText,
+                    onValueChange = { kcalText = it },
+                    label = { Text("단위당 칼로리") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = defaultPriceText,
+                    onValueChange = { defaultPriceText = it },
+                    label = { Text("기본 단가") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = draft.memo.orEmpty(),
+                    onValueChange = { memo -> draft = draft.copy(memo = memo.ifBlank { null }) },
+                    label = { Text("메모") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = canSave,
+                onClick = {
+                    onSave(
+                        draft.copy(
+                            kcalPerUnit = kcal,
+                            defaultPrice = defaultPrice!!
+                        )
+                    )
+                }
+            ) {
+                Text("추가")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("취소") }
         }
     )
 }
@@ -336,5 +610,195 @@ private fun moveDate(date: String, amount: Int): String {
         time = parsedDate
         add(Calendar.DAY_OF_MONTH, amount)
         format.format(time)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HabitProjectDialog(
+    initialProject: HabitCategoryDefinition,
+    onDismiss: () -> Unit,
+    onSave: (HabitCategoryDefinition) -> Unit
+) {
+    var name by remember(initialProject) { mutableStateOf(initialProject.name) }
+    var startDate by remember(initialProject) {
+        mutableStateOf(initialProject.startDate.orEmpty())
+    }
+    var endDate by remember(initialProject) {
+        mutableStateOf(initialProject.endDate.orEmpty())
+    }
+    var showDateRangePicker by remember { mutableStateOf(false) }
+
+    val hasValidPeriod = startDate.isBlank() || endDate.isBlank() || startDate <= endDate
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(if (initialProject.id == 0L) "습관 프로젝트 추가" else "습관 프로젝트 수정")
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("프로젝트 이름") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = if (startDate.isBlank() && endDate.isBlank()) {
+                        "기간 제한 없음"
+                    } else {
+                        "$startDate  ~  $endDate"
+                    },
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { showDateRangePicker = true },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("기간 선택")
+                    }
+                    TextButton(
+                        onClick = {
+                            startDate = ""
+                            endDate = ""
+                        }
+                    ) {
+                        Text("기간 없음")
+                    }
+                }
+                if (!hasValidPeriod) {
+                    Text(
+                        text = "종료일은 시작일보다 빠를 수 없어요.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = name.isNotBlank() && hasValidPeriod,
+                onClick = {
+                    onSave(
+                        initialProject.copy(
+                            name = name.trim(),
+                            startDate = startDate.ifBlank { null },
+                            endDate = endDate.ifBlank { null }
+                        )
+                    )
+                }
+            ) {
+                Text("저장")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
+
+    if (showDateRangePicker) {
+        val rangeState = rememberDateRangePickerState(
+            initialSelectedStartDateMillis = dateStringToUtcMillis(startDate),
+            initialSelectedEndDateMillis = dateStringToUtcMillis(endDate)
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showDateRangePicker = false },
+            confirmButton = {
+                TextButton(
+                    enabled = rangeState.selectedStartDateMillis != null &&
+                        rangeState.selectedEndDateMillis != null,
+                    onClick = {
+                        startDate = utcMillisToDateString(
+                            rangeState.selectedStartDateMillis!!
+                        )
+                        endDate = utcMillisToDateString(
+                            rangeState.selectedEndDateMillis!!
+                        )
+                        showDateRangePicker = false
+                    }
+                ) {
+                    Text("확인")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDateRangePicker = false }) {
+                    Text("취소")
+                }
+            }
+        ) {
+            DateRangePicker(
+                state = rangeState,
+                modifier = Modifier.height(520.dp),
+                showModeToggle = false
+            )
+        }
+    }
+}
+
+private fun dateStringToUtcMillis(date: String): Long? {
+    if (date.isBlank()) return null
+    val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+        isLenient = false
+    }
+    return runCatching { format.parse(date)?.time }.getOrNull()
+}
+
+private fun utcMillisToDateString(millis: Long): String {
+    val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+    return format.format(Date(millis))
+}
+
+@Composable
+private fun HabitProjectCard(
+    project: HabitCategory,
+    onHabitChecked: (com.example.tracker.data.dto.HabitGetDailyListDto) -> Unit
+) {
+    val actualHabits = project.habitList.filter { habit ->
+        habit.id != null && habit.name != null
+    }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = project.categoryName,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            if (actualHabits.isEmpty()) {
+                Text(
+                    text = "등록된 습관이 없어요",
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                actualHabits.forEach { habit ->
+                    val habitName = habit.name ?: return@forEach
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = habit.checked,
+                            onCheckedChange = { onHabitChecked(habit) }
+                        )
+                        Text(text = habitName)
+                    }
+                }
+            }
+        }
     }
 }

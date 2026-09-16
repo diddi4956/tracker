@@ -17,6 +17,7 @@ class TrackerViewModelFactory(private val db: AppDatabase): ViewModelProvider.Fa
             {
                 DailyViewModel(
                     expenseRecordDao = db.expenseRecordDao(),
+                    expenseSubCategoryDao = db.expenseSubCategoryDao(),
                     habitRecordDao = db.habitRecordDao(),
                     conditionRecordDao = db.conditionRecordDao(),
                     itemDefinitionDao = db.itemDefinitionDao(),

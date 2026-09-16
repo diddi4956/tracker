@@ -18,6 +18,7 @@ import com.example.tracker.data.entity.ConditionDefinition
 import com.example.tracker.data.entity.ConditionDefinitionTag
 import com.example.tracker.data.entity.ConditionTag
 import com.example.tracker.data.entity.ExpenseRecord
+import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.HabitRecord
@@ -59,7 +60,8 @@ class  DailyViewModel(
     private val itemDefinitionDao: ItemDefinitionDao,
     private val habitDefinitionDao: HabitDefinitionDao,
     private val habitCategoryDefinitionDao: HabitCategoryDefinitionDao,
-    private val conditionDefinitionDao: ConditionDefinitionDao
+    private val conditionDefinitionDao: ConditionDefinitionDao,
+    private val expenseSubCategoryDao: ExpenseSubCategoryDao
     /*
     1.
         class DailyViewModel extends ViewModel {
@@ -107,7 +109,7 @@ class  DailyViewModel(
             //}
             val expenseByCategory = expenseCategories.map{category ->
                 val records = expenseRecords.filter{ record -> record.categoryId == category.id}
-                ExpenseByCategory(categoryName = category.name, records, totalPrice =  records.sumOf{record -> record.totalPrice})
+                ExpenseByCategory(categoryName = category.name, categoryId = category.id ,recordList = records, totalPrice =  records.sumOf{record -> record.totalPrice})
             }
             val habits = habitRecords.groupBy{record -> record.categoryId}.map{(_, records) -> HabitCategory(records.firstOrNull()?.categoryName ?:"-", records)}
             val conditions = conditionRecords.groupBy{record -> record.tagId}.map{(_,records) -> ConditionDailyListByTag(records.firstOrNull()?.tagName ?:"-", records) }
@@ -188,8 +190,45 @@ class  DailyViewModel(
             expenseRecordDao.delete(record)
             loadDailyData()
         }
-    } //이래야하나?
+    }
 
+    fun searchSubCategory(categoryId: Long, name: String){
+        viewModelScope.launch{
+            val subCategories = expenseSubCategoryDao.getByCategoryId(categoryId, name)
+            dailyUiState = dailyUiState.copy(expenseSubCategoryCandidates = subCategories)
+        }
+    }
+
+    fun openAddSubCategory(categoryId: Long){
+        dailyUiState = dailyUiState.copy(subCategoryForm = ExpenseSubCategoryDefinition(0L, categoryId, ""))
+    }
+
+    fun closeSubCategoryForm(){
+        dailyUiState = dailyUiState.copy(subCategoryForm = null)
+    }
+
+    fun addSubCategory(subCategory: ExpenseSubCategoryDefinition){
+        viewModelScope.launch{
+            val candidate = expenseSubCategoryDao.duplicationTest(null, subCategory.categoryId, subCategory.name)
+
+            if(candidate.isEmpty()){
+                expenseSubCategoryDao.insert(subCategory)
+            }
+        }
+    }
+
+    fun openUpdateSubCategory(subCategory: ExpenseSubCategoryDefinition){
+        dailyUiState = dailyUiState.copy(subCategoryForm = subCategory)
+    }
+    fun updateSubCategory(subCategory: ExpenseSubCategoryDefinition){
+        viewModelScope.launch{
+            val candidate = expenseSubCategoryDao.duplicationTest(subCategory.id, subCategory.categoryId, subCategory.name)
+
+            if(candidate.isEmpty()){
+                expenseSubCategoryDao.update(subCategory)
+            }
+        }
+    }
     // 5. 아이템검색
     fun searchItems(itemName: String){
         viewModelScope.launch{
@@ -199,8 +238,16 @@ class  DailyViewModel(
     }
 
     // 아이템 추가 팝업 (초반에 세팅되는 데이터가 달라 추가와 수정 분리함)
-    fun openAddItem(){
-        dailyUiState = dailyUiState.copy(itemForm = ItemDefinition(subCategoryId = 0L, name = "", store = null, kcalPerUnit = null, defaultPrice = 0L, memo = ""))
+    fun openAddItem(name: String){
+        dailyUiState = dailyUiState.copy(
+            itemForm = ItemDefinition(
+                name = name,
+                store = null,
+                kcalPerUnit = null,
+                defaultPrice = 0L,
+                memo = ""
+            )
+        )
     }
 
     fun closeItemForm(){
@@ -211,12 +258,11 @@ class  DailyViewModel(
     fun addItem(item: ItemDefinition){
         viewModelScope.launch{
             // excludeId를 null로 설정
-            val candidates = itemDefinitionDao.duplicationTest(item.subCategoryId, item.name, item.store, item.kcalPerUnit, item.defaultPrice, null)
+            val candidates = itemDefinitionDao.duplicationTest(item.name, item.store, item.kcalPerUnit, item.defaultPrice, null)
             // dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) //candidates가 있으면 true
 
             if(candidates.isEmpty()){ // 팝업을 열지 못하면(중복이 없으면) insert, 페이지 리로드
                 itemDefinitionDao.insert(item)
-                loadDailyData()
             }
 
         }
@@ -230,13 +276,12 @@ class  DailyViewModel(
     // 7. 아이템 수정
     fun updateItem(item: ItemDefinition){
         viewModelScope.launch{
-            val candidates = itemDefinitionDao.duplicationTest(item.subCategoryId, item.name, item.store, item.kcalPerUnit, item.defaultPrice, item.id)
+            val candidates = itemDefinitionDao.duplicationTest(item.name, item.store, item.kcalPerUnit, item.defaultPrice, item.id)
             // 팝업에 입력된 내용을 띄워줌
             // dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) // 후보가 있으면 true(중복 데이터 띄움) -> candidate를 띄워주는 기능을 없앰(디비 입력에의 허용/거부만 남김)
 
             if(candidates.isEmpty()){ // 중복이 없으면 update
                 itemDefinitionDao.update(item)
-                loadDailyData() // 수정이 됐을때만 화면 리로드
             }
         }
     } // 이게 나으려나? 아님 itemId를 받아야하나

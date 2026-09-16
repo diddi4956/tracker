@@ -5,15 +5,19 @@ import com.example.tracker.data.dto.HabitGetDailyListDto
 import com.example.tracker.data.entity.ConditionDefinition
 import com.example.tracker.data.entity.ConditionTag
 import com.example.tracker.data.entity.ExpenseRecord
+import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.ItemDefinition
-import com.example.tracker.data.model.expenseCategories
+// import com.example.tracker.data.model.expenseCategories
 
 data class DailyUiState(
     val date: String = "", // loadDailyData()
     // expense
     val dailyExpenses: List<ExpenseByCategory> = emptyList(), // loadDailyData()
+
+    val expenseSubCategoryCandidates: List<ExpenseSubCategoryDefinition> = emptyList(),
+    val subCategoryForm: ExpenseSubCategoryDefinition? = null,
 
     val expenseRecordForm: ExpenseRecordForm? = null,
     val itemCandidates: List<ItemDefinition> = emptyList(),
@@ -51,7 +55,7 @@ data class ExpenseDailyRecord(
 
 data class ExpenseByCategory(
     val categoryName: String,
-    // val categoryId: Long,
+    val categoryId: Long,
     val recordList: List<ExpenseDailyRecord>,
     val totalPrice: Int
 )
