@@ -2,7 +2,6 @@ package com.example.tracker.data.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.tracker.data.dao.ConditionDefinitionDao
 import com.example.tracker.data.dao.ConditionRecordDao
 import com.example.tracker.data.dao.DailyEntryDao
 import com.example.tracker.data.dao.ExpenseRecordDao
@@ -14,7 +13,7 @@ import com.example.tracker.data.dao.ItemDefinitionDao
 import com.example.tracker.data.entity.ConditionCategory
 import com.example.tracker.data.entity.ConditionDefinition
 import com.example.tracker.data.entity.ConditionCheckRecord
-import com.example.tracker.data.entity.ConditionDefinitionTag
+import com.example.tracker.data.entity.ConditionRelation
 import com.example.tracker.data.entity.ConditionTag
 import com.example.tracker.data.entity.DailyEntry
 import com.example.tracker.data.entity.ExpenseRecord
@@ -35,7 +34,7 @@ import com.example.tracker.data.entity.ItemDefinition
         ConditionCheckRecord::class,
         ConditionCategory::class,
         DailyEntry::class,
-        ConditionDefinitionTag::class,
+        ConditionRelation::class,
         ConditionTag::class,
         HabitCategoryDefinition::class,
     ],
@@ -45,7 +44,6 @@ import com.example.tracker.data.entity.ItemDefinition
 abstract class AppDatabase : RoomDatabase() { // 인터페이스랑의 차이가 뭐지?
     abstract fun habitRecordDao(): HabitRecordDao
     abstract fun habitDefinitionDao(): HabitDefinitionDao
-    abstract fun conditionDefinitionDao(): ConditionDefinitionDao
     abstract fun conditionRecordDao(): ConditionRecordDao
     abstract fun dailyEntryDao(): DailyEntryDao
     abstract fun expenseRecordDao(): ExpenseRecordDao

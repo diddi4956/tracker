@@ -1,9 +1,6 @@
 package com.example.tracker.ui.daily
 
-import com.example.tracker.data.dto.ConditionGetDailyListDto
 import com.example.tracker.data.dto.HabitGetDailyListDto
-import com.example.tracker.data.entity.ConditionDefinition
-import com.example.tracker.data.entity.ConditionTag
 import com.example.tracker.data.entity.ExpenseRecord
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
@@ -32,13 +29,6 @@ data class DailyUiState(
     val updateHabit: HabitDefinition? = null,
 
     // condition
-    val dailyConditions: List<ConditionDailyListByTag> = emptyList(), // loadDailyData()
-    val conditionDefinitionListNotChecked: List<ConditionDefinition> = emptyList(), // loadDailyData()
-
-    val conditionSearchResult: List<ConditionDefinition> =emptyList(), // searchCondition(string: String)
-    val conditionForm: ConditionDefinition? = null,
-    val tagSearchResult: List<ConditionTag> = emptyList(),
-    val conditionTagForm: ConditionTag? = null, // 기본값이 없으면 DailyUiState()라고 빈 초기 상태를 기본기없이 만들수가 없음 아 이게 지금 생성자라서 그런가
     //
     val isLoading: Boolean = false
 )
@@ -79,7 +69,3 @@ data class HabitCategory(
 )
 
 
-data class ConditionDailyListByTag(
-    val tagName: String,
-    val conditionList: List<ConditionGetDailyListDto>
-)

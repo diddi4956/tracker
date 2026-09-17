@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.tracker.data.dao.ConditionDefinitionDao
 import com.example.tracker.data.dao.ConditionRecordDao
 import com.example.tracker.data.dao.ExpenseRecordDao
 import com.example.tracker.data.dao.ExpenseSubCategoryDao
@@ -13,10 +12,6 @@ import com.example.tracker.data.dao.HabitCategoryDefinitionDao
 import com.example.tracker.data.dao.HabitDefinitionDao
 import com.example.tracker.data.dao.HabitRecordDao
 import com.example.tracker.data.dao.ItemDefinitionDao
-import com.example.tracker.data.entity.ConditionCheckRecord
-import com.example.tracker.data.entity.ConditionDefinition
-import com.example.tracker.data.entity.ConditionDefinitionTag
-import com.example.tracker.data.entity.ConditionTag
 import com.example.tracker.data.entity.ExpenseRecord
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
@@ -60,7 +55,6 @@ class  DailyViewModel(
     private val itemDefinitionDao: ItemDefinitionDao,
     private val habitDefinitionDao: HabitDefinitionDao,
     private val habitCategoryDefinitionDao: HabitCategoryDefinitionDao,
-    private val conditionDefinitionDao: ConditionDefinitionDao,
     private val expenseSubCategoryDao: ExpenseSubCategoryDao
     /*
     1.
@@ -77,44 +71,54 @@ class  DailyViewModel(
     3. 나는 받은 객체만 사용하면 된다.
     => compose는 완성된 상태 객체를 만들고 copy()로 교체하는 방식이라서.
      */
-): ViewModel(){
-    var  dailyUiState by mutableStateOf(DailyUiState()) // 기본값이 없는것들이 있어서 에러라나
+): ViewModel() {
+    var dailyUiState by mutableStateOf(DailyUiState()) // 기본값이 없는것들이 있어서 에러라나
         private set // setter의 접근권한을 바꾸는거 val 은 읽기전용으로 getter만 있다?라던가? 뭘까?
 
     // function
 
     init {
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault() ). format (Date())
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         changeDate(today)
     }
 
-    fun changeDate(date: String){
+    fun changeDate(date: String) {
         dailyUiState = dailyUiState.copy(date = date)
         loadDailyData()
     }
 
     // 1. DB에서 선택 날짜의 지출 기록을 가져옴
-    fun loadDailyData(){
+    fun loadDailyData() {
         viewModelScope.launch { // DAO함수가 suspend fun이면 그냥 호출 못하고 코루틴안에서 해야하므로 하는것.
             // Android Jetpack의 ViewModel 라이브러리가 제공하는 것
             val date = dailyUiState.date
 
             val expenseRecords = expenseRecordDao.getByDate(date)
             val habitRecords = habitRecordDao.getDailyList(date)
-            val conditionRecords = conditionRecordDao.getDailyList(date)
-            val conditionList = conditionDefinitionDao.getDefinitionList(date)
+
 
             // val 결과목록 = 원본목록.map { 원본한개 ->
             //    결과객체(...)
             //}
-            val expenseByCategory = expenseCategories.map{category ->
-                val records = expenseRecords.filter{ record -> record.categoryId == category.id}
-                ExpenseByCategory(categoryName = category.name, categoryId = category.id ,recordList = records, totalPrice =  records.sumOf{record -> record.totalPrice})
+            val expenseByCategory = expenseCategories.map { category ->
+                val records = expenseRecords.filter { record -> record.categoryId == category.id }
+                ExpenseByCategory(
+                    categoryName = category.name,
+                    categoryId = category.id,
+                    recordList = records,
+                    totalPrice = records.sumOf { record -> record.totalPrice })
             }
-            val habits = habitRecords.groupBy{record -> record.categoryId}.map{(_, records) -> HabitCategory(records.firstOrNull()?.categoryName ?:"-", records)}
-            val conditions = conditionRecords.groupBy{record -> record.tagId}.map{(_,records) -> ConditionDailyListByTag(records.firstOrNull()?.tagName ?:"-", records) }
+            val habits = habitRecords.groupBy { record -> record.categoryId }.map { (_, records) ->
+                HabitCategory(
+                    records.firstOrNull()?.categoryName ?: "-",
+                    records
+                )
+            }
 
-            dailyUiState = dailyUiState.copy(dailyExpenses = expenseByCategory, dailyHabits = habits, dailyConditions = conditions, conditionDefinitionListNotChecked =  conditionList) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
+            dailyUiState = dailyUiState.copy(
+                dailyExpenses = expenseByCategory,
+                dailyHabits = habits,
+            ) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
 
             // 4. dto -> UiState 변환
             // 5. dailyUiState 갱신
@@ -122,11 +126,12 @@ class  DailyViewModel(
     }
 
     // 지출내역(record) 추가 팝업
-    fun openAddExpenseRecord(){
-        dailyUiState = dailyUiState.copy(expenseRecordForm = ExpenseRecordForm(0L, "", 0L, "", 0L, 0L, 0, ""))
+    fun openAddExpenseRecord() {
+        dailyUiState =
+            dailyUiState.copy(expenseRecordForm = ExpenseRecordForm(0L, "", 0L, "", 0L, 0L, 0, ""))
     }
 
-    fun closeExpenseRecordForm(){
+    fun closeExpenseRecordForm() {
         dailyUiState = dailyUiState.copy(expenseRecordForm = null)
     }
 
@@ -148,21 +153,21 @@ class  DailyViewModel(
     }
 
     // 수정팝업
-    fun openUpdateExpenseRecord(recordId: Long){
-        viewModelScope.launch{
+    fun openUpdateExpenseRecord(recordId: Long) {
+        viewModelScope.launch {
             val formData = expenseRecordDao.getRecordData(recordId)
             dailyUiState = dailyUiState.copy(expenseRecordForm = formData)
         }
 
     }
 
-    fun closeUpdateExpenseRecord(){
+    fun closeUpdateExpenseRecord() {
         dailyUiState = dailyUiState.copy(expenseRecordForm = null)
     }
-    
-     // 3. 지출내역 수정
+
+    // 3. 지출내역 수정
     fun updateExpenseRecord(form: ExpenseRecordForm) {
-        viewModelScope.launch{
+        viewModelScope.launch {
             // val record = expenseRecordDao.getRecord(recordId)
             val record = ExpenseRecord(
                 id = form.recordId,
@@ -173,9 +178,14 @@ class  DailyViewModel(
                 quantity = form.quantity,
                 memo = form.memo
             )
-            val candidates = expenseRecordDao.findSameExpenseRecord(record.date, record.itemId, record.subCategoryId, record.id)
+            val candidates = expenseRecordDao.findSameExpenseRecord(
+                record.date,
+                record.itemId,
+                record.subCategoryId,
+                record.id
+            )
 
-            if(candidates == null) { // 중복이 없으면 DB 수정
+            if (candidates == null) { // 중복이 없으면 DB 수정
                 expenseRecordDao.update(record)
                 loadDailyData()
             }
@@ -184,34 +194,39 @@ class  DailyViewModel(
 
 
     // 4. 리코드 삭제
-    fun deleteExpenseRecord(recordId: Long){
-        viewModelScope.launch{
+    fun deleteExpenseRecord(recordId: Long) {
+        viewModelScope.launch {
             val record = expenseRecordDao.getRecord(recordId)
             expenseRecordDao.delete(record)
             loadDailyData()
         }
     }
 
-    fun searchSubCategory(categoryId: Long, name: String){
-        viewModelScope.launch{
+    fun searchSubCategory(categoryId: Long, name: String) {
+        viewModelScope.launch {
             val subCategories = expenseSubCategoryDao.getByCategoryId(categoryId, name)
             dailyUiState = dailyUiState.copy(expenseSubCategoryCandidates = subCategories)
         }
     }
 
-    fun openAddSubCategory(categoryId: Long){
-        dailyUiState = dailyUiState.copy(subCategoryForm = ExpenseSubCategoryDefinition(0L, categoryId, ""))
+    fun openAddSubCategory(categoryId: Long) {
+        dailyUiState =
+            dailyUiState.copy(subCategoryForm = ExpenseSubCategoryDefinition(0L, categoryId, ""))
     }
 
-    fun closeSubCategoryForm(){
+    fun closeSubCategoryForm() {
         dailyUiState = dailyUiState.copy(subCategoryForm = null)
     }
 
-    fun addSubCategory(subCategory: ExpenseSubCategoryDefinition){
-        viewModelScope.launch{
-            val candidate = expenseSubCategoryDao.duplicationTest(null, subCategory.categoryId, subCategory.name)
+    fun addSubCategory(subCategory: ExpenseSubCategoryDefinition) {
+        viewModelScope.launch {
+            val candidate = expenseSubCategoryDao.duplicationTest(
+                null,
+                subCategory.categoryId,
+                subCategory.name
+            )
 
-            if(candidate.isEmpty()){
+            if (candidate.isEmpty()) {
                 val insertedId = expenseSubCategoryDao.insert(subCategory)
                 dailyUiState = dailyUiState.copy(
                     expenseRecordForm = dailyUiState.expenseRecordForm?.copy(
@@ -225,28 +240,34 @@ class  DailyViewModel(
         }
     }
 
-    fun openUpdateSubCategory(subCategory: ExpenseSubCategoryDefinition){
+    fun openUpdateSubCategory(subCategory: ExpenseSubCategoryDefinition) {
         dailyUiState = dailyUiState.copy(subCategoryForm = subCategory)
     }
-    fun updateSubCategory(subCategory: ExpenseSubCategoryDefinition){
-        viewModelScope.launch{
-            val candidate = expenseSubCategoryDao.duplicationTest(subCategory.id, subCategory.categoryId, subCategory.name)
 
-            if(candidate.isEmpty()){
+    fun updateSubCategory(subCategory: ExpenseSubCategoryDefinition) {
+        viewModelScope.launch {
+            val candidate = expenseSubCategoryDao.duplicationTest(
+                subCategory.id,
+                subCategory.categoryId,
+                subCategory.name
+            )
+
+            if (candidate.isEmpty()) {
                 expenseSubCategoryDao.update(subCategory)
             }
         }
     }
+
     // 5. 아이템검색
-    fun searchItems(itemName: String){
-        viewModelScope.launch{
+    fun searchItems(itemName: String) {
+        viewModelScope.launch {
             val items = itemDefinitionDao.getByName(itemName)
             dailyUiState = dailyUiState.copy(itemCandidates = items)
         }
     }
 
     // 아이템 추가 팝업 (초반에 세팅되는 데이터가 달라 추가와 수정 분리함)
-    fun openAddItem(name: String){
+    fun openAddItem(name: String) {
         dailyUiState = dailyUiState.copy(
             itemForm = ItemDefinition(
                 name = name,
@@ -258,18 +279,24 @@ class  DailyViewModel(
         )
     }
 
-    fun closeItemForm(){
+    fun closeItemForm() {
         dailyUiState = dailyUiState.copy(itemForm = null)
     }
 
     // 6. 아이템 추가
-    fun addItem(item: ItemDefinition){
-        viewModelScope.launch{
+    fun addItem(item: ItemDefinition) {
+        viewModelScope.launch {
             // excludeId를 null로 설정
-            val candidates = itemDefinitionDao.duplicationTest(item.name, item.store, item.kcalPerUnit, item.defaultPrice, null)
+            val candidates = itemDefinitionDao.duplicationTest(
+                item.name,
+                item.store,
+                item.kcalPerUnit,
+                item.defaultPrice,
+                null
+            )
             // dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) //candidates가 있으면 true
 
-            if(candidates.isEmpty()){ // 팝업을 열지 못하면(중복이 없으면) insert, 페이지 리로드
+            if (candidates.isEmpty()) { // 팝업을 열지 못하면(중복이 없으면) insert, 페이지 리로드
                 val insertedId = itemDefinitionDao.insert(item)
                 dailyUiState = dailyUiState.copy(
                     expenseRecordForm = dailyUiState.expenseRecordForm?.copy(
@@ -286,29 +313,36 @@ class  DailyViewModel(
     }
 
     // 아이템 수정 팝업
-    fun openUpdateItem(item: ItemDefinition){
+    fun openUpdateItem(item: ItemDefinition) {
         dailyUiState = dailyUiState.copy(itemForm = item)
     }
 
     // 7. 아이템 수정
-    fun updateItem(item: ItemDefinition){
-        viewModelScope.launch{
-            val candidates = itemDefinitionDao.duplicationTest(item.name, item.store, item.kcalPerUnit, item.defaultPrice, item.id)
+    fun updateItem(item: ItemDefinition) {
+        viewModelScope.launch {
+            val candidates = itemDefinitionDao.duplicationTest(
+                item.name,
+                item.store,
+                item.kcalPerUnit,
+                item.defaultPrice,
+                item.id
+            )
             // 팝업에 입력된 내용을 띄워줌
             // dailyUiState = dailyUiState.copy(itemCandidates = candidates, showDuplicateDialog = candidates.isNotEmpty()) // 후보가 있으면 true(중복 데이터 띄움) -> candidate를 띄워주는 기능을 없앰(디비 입력에의 허용/거부만 남김)
 
-            if(candidates.isEmpty()){ // 중복이 없으면 update
+            if (candidates.isEmpty()) { // 중복이 없으면 update
                 itemDefinitionDao.update(item)
                 dailyUiState = dailyUiState.copy(
                     itemForm = null,
-                    itemCandidates = emptyList())
+                    itemCandidates = emptyList()
+                )
             }
         }
     } // 이게 나으려나? 아님 itemId를 받아야하나
 
     // 8. 삭제
-    fun deleteItem(item: ItemDefinition){
-        viewModelScope.launch{
+    fun deleteItem(item: ItemDefinition) {
+        viewModelScope.launch {
             itemDefinitionDao.delete(item)
             dailyUiState = dailyUiState.copy(itemForm = null, itemCandidates = emptyList())
             loadDailyData()
@@ -318,8 +352,8 @@ class  DailyViewModel(
 
     // 해빗 입력하기
     // 1. 체크
-    fun checkingHabit(record: HabitRecord){
-        viewModelScope.launch{
+    fun checkingHabit(record: HabitRecord) {
+        viewModelScope.launch {
             habitRecordDao.checkHabit(record)
             loadDailyData()
         }
@@ -334,11 +368,15 @@ class  DailyViewModel(
 //    }
 
     // 3. 해빗 추가/수정하기(저장버튼 눌렀을시) 버튼 -> state변경(팝업 등) -> UI변경(컴포즈역할) -> 저장버튼 -> db변경(이때 기존에 있는지도 판단)
-    fun updateHabit(habitDefinition: HabitDefinition){
-        viewModelScope.launch{
-            val candidate = habitDefinitionDao.findDuplicationDefinition(habitDefinition.categoryId, habitDefinition.name, habitDefinition.id)
+    fun updateHabit(habitDefinition: HabitDefinition) {
+        viewModelScope.launch {
+            val candidate = habitDefinitionDao.findDuplicationDefinition(
+                habitDefinition.categoryId,
+                habitDefinition.name,
+                habitDefinition.id
+            )
 
-            if(candidate == null){
+            if (candidate == null) {
                 habitDefinitionDao.update(habitDefinition)
                 dailyUiState = dailyUiState.copy(updateHabit = null)
                 loadDailyData()
@@ -346,19 +384,24 @@ class  DailyViewModel(
         }
     }
 
-    fun addHabit(habitDefinition: HabitDefinition){
-        viewModelScope.launch{
-            val candidate = habitDefinitionDao.findDuplicationDefinition(habitDefinition.categoryId, habitDefinition.name, null)
+    fun addHabit(habitDefinition: HabitDefinition) {
+        viewModelScope.launch {
+            val candidate = habitDefinitionDao.findDuplicationDefinition(
+                habitDefinition.categoryId,
+                habitDefinition.name,
+                null
+            )
 
-            if(candidate == null){ // 중복이 없는경우 -> insert
+            if (candidate == null) { // 중복이 없는경우 -> insert
                 habitDefinitionDao.insert(habitDefinition)
                 dailyUiState = dailyUiState.copy(updateHabit = null)
                 loadDailyData()
             }
         }
     }
+
     // 해빗데피니션 수정 팝업
-    fun openUpdateHabit(habitDefinitionId: Long){
+    fun openUpdateHabit(habitDefinitionId: Long) {
         viewModelScope.launch {
             habitDefinitionDao.findDefinition(habitDefinitionId)?.let { habit ->
                 dailyUiState = dailyUiState.copy(updateHabit = habit)
@@ -367,20 +410,32 @@ class  DailyViewModel(
     }
 
     // 해빗데피니션 추가 팝업
-    fun openAddHabit(categoryId: Long){
-        dailyUiState = dailyUiState.copy(updateHabit = HabitDefinition(id = 0L, categoryId = categoryId, name = "", importance = 0))
+    fun openAddHabit(categoryId: Long) {
+        dailyUiState = dailyUiState.copy(
+            updateHabit = HabitDefinition(
+                id = 0L,
+                categoryId = categoryId,
+                name = "",
+                importance = 0
+            )
+        )
     }
 
-    fun closeHabitForm(){
+    fun closeHabitForm() {
         dailyUiState = dailyUiState.copy(updateHabit = null)
     }
 
     // 4. 프로젝트 추가/수정하기
-    fun addProject(habitProject: HabitCategoryDefinition){
-        viewModelScope.launch{
-            val candidates = habitCategoryDefinitionDao.testDuplication(habitProject.name, habitProject.endDate, habitProject.startDate, null)
+    fun addProject(habitProject: HabitCategoryDefinition) {
+        viewModelScope.launch {
+            val candidates = habitCategoryDefinitionDao.testDuplication(
+                habitProject.name,
+                habitProject.endDate,
+                habitProject.startDate,
+                null
+            )
 
-            if(candidates.isEmpty()){
+            if (candidates.isEmpty()) {
                 habitCategoryDefinitionDao.insert(habitProject)
                 dailyUiState = dailyUiState.copy(updateHabitCategory = null)
                 loadDailyData()
@@ -389,20 +444,26 @@ class  DailyViewModel(
     }
 
     //
-    fun openAddProject(){
-        dailyUiState = dailyUiState.copy(updateHabitCategory = HabitCategoryDefinition(0L,  "", null, null))
+    fun openAddProject() {
+        dailyUiState =
+            dailyUiState.copy(updateHabitCategory = HabitCategoryDefinition(0L, "", null, null))
     }
 
-    fun closeHabitCategoryForm(){
+    fun closeHabitCategoryForm() {
         dailyUiState = dailyUiState.copy(updateHabitCategory = null)
     }
 
     // 5. 프로젝트 수정하기
-    fun updateProject(project: HabitCategoryDefinition){
-        viewModelScope.launch{
-            val candidates = habitCategoryDefinitionDao.testDuplication(project.name, project.endDate, project.startDate, project.id)
+    fun updateProject(project: HabitCategoryDefinition) {
+        viewModelScope.launch {
+            val candidates = habitCategoryDefinitionDao.testDuplication(
+                project.name,
+                project.endDate,
+                project.startDate,
+                project.id
+            )
 
-            if(candidates.isEmpty()){
+            if (candidates.isEmpty()) {
                 habitCategoryDefinitionDao.update(project)
                 dailyUiState = dailyUiState.copy(updateHabitCategory = null)
                 loadDailyData()
@@ -410,16 +471,16 @@ class  DailyViewModel(
         }
     }
 
-    fun openUpdateProject(projectId: Long){
-        viewModelScope.launch{
+    fun openUpdateProject(projectId: Long) {
+        viewModelScope.launch {
             val habitProject = habitCategoryDefinitionDao.findHabitProject(projectId)
             dailyUiState = dailyUiState.copy(updateHabitCategory = habitProject)
         }
     }
 
     // 6. 프로젝트 삭제
-    fun deleteProject(projectId: Long){
-        viewModelScope.launch{
+    fun deleteProject(projectId: Long) {
+        viewModelScope.launch {
             habitCategoryDefinitionDao.deleteHabitProject(projectId)
             dailyUiState = dailyUiState.copy(updateHabitCategory = null)
             loadDailyData()
@@ -427,14 +488,14 @@ class  DailyViewModel(
     }
 
     // 7. 해빗(definition) 삭제
-    fun deleteHabit(habit: HabitDefinition){
-        viewModelScope.launch{
+    fun deleteHabit(habit: HabitDefinition) {
+        viewModelScope.launch {
             habitDefinitionDao.delete(habit)
             loadDailyData()
         }
     }
 
-    fun deleteHabit(habitDefinitionId: Long){
+    fun deleteHabit(habitDefinitionId: Long) {
         viewModelScope.launch {
             habitDefinitionDao.findDefinition(habitDefinitionId)?.let { habit ->
                 habitDefinitionDao.delete(habit)
@@ -445,156 +506,8 @@ class  DailyViewModel(
 
 
     // condition
-    // 체크
-    fun checkCondition(record: ConditionCheckRecord){
-        viewModelScope.launch{
-            conditionRecordDao.checkingRecordAndDefinitionFrequency(record)
-            loadDailyData()
-        }
-    }
-    // 1. 검색창
-    fun searchCondition(string: String){
-        viewModelScope.launch{
-            val conditions = conditionDefinitionDao.getByName(string)
-            dailyUiState = dailyUiState.copy(conditionSearchResult = conditions)
-        }
-    }
 
-    // 2.
-    fun addConditionDefinition(condition: ConditionDefinition, tagIds:List<Long>){
-        viewModelScope.launch{
-            val candidates = conditionDefinitionDao.testDuplication(condition.name, condition.conditionCategoryId, null)
-
-            if(candidates.isEmpty()){
-                conditionDefinitionDao.insertDefinitionWithTag(condition, tagIds)
-                loadDailyData()
-            }
-
-        }
-    }
-
-    // condition 추가 팝업
-    fun openAddCondition(){
-        dailyUiState = dailyUiState.copy(conditionForm = ConditionDefinition(0L, "", 0L, 0)) // 이거 isActive자리는 기본세팅 어케해야하냐
-    }
-
-    fun closeConditionForm(){
-        dailyUiState = dailyUiState.copy(conditionForm = null)
-    }
-
-    // 3.
-    fun updateCondition(condition: ConditionDefinition){
-        viewModelScope.launch{
-            val candidates = conditionDefinitionDao.testDuplication(condition.name, condition.conditionCategoryId, condition.id)
-
-            if(candidates.isEmpty()){
-                conditionDefinitionDao.updateConditionDetails(condition.name, condition.conditionCategoryId, condition.id)
-                loadDailyData()
-            }
-        }
-    }
-
-    //
-    fun openUpdateCondition(condition: ConditionDefinition){
-        viewModelScope.launch{
-            val tagList = conditionDefinitionDao.findTagByConditionId(condition.id)
-            dailyUiState = dailyUiState.copy(conditionForm = condition, tagSearchResult = tagList)
-        }
-
-    }
-
-    // 4. 태그연결하기(데피니션에서 태그 선택해서 추가하기) conditionDefinitionId를 사용하여 relation만듦
-    fun addTagToDefinition(conditionDefinition: ConditionDefinition, conditionTagIds: List<Long>){
-        viewModelScope.launch{
-            val relations = conditionTagIds.map { conditionTagId ->
-                ConditionDefinitionTag(
-                    conditionDefinitionId = conditionDefinition.id,
-                    tagId = conditionTagId
-                )
-            }
-            conditionDefinitionDao.insertDefinitionTag(relations)
-            loadDailyData()
-        }
-    }
-
-    // 5. 태그연결하기(태그에서 컨디션 추가하기)
-    fun addDefinitionToTag(conditionTag: ConditionTag, conditionDefinitionIds:List<Long>){
-        viewModelScope.launch{
-            val relations = conditionDefinitionIds.map{definitionId -> ConditionDefinitionTag(
-                conditionDefinitionId = definitionId,
-                tagId = conditionTag.id)
-            }
-            conditionDefinitionDao.insertDefinitionTag(relations)
-            loadDailyData()
-        }
-    }
-
-    // 6. 태그 검색하기
-    fun searchTag(string: String){
-        viewModelScope.launch{
-            val tags = conditionDefinitionDao.getByTagName(string)
-            dailyUiState = dailyUiState.copy(tagSearchResult = tags)
-        }
-    }
-
-    // 7. 태그 추가하기
-    fun addTag(tag: ConditionTag){
-        viewModelScope.launch{
-            val candidates = conditionDefinitionDao.testTagDuplication(tag.name, null)
-
-            if(candidates.isEmpty()){
-                conditionDefinitionDao.insertTag(tag) // 근데 태그는 데피니션이 필수가 아닌가? 굳이인가보당 하긴
-                loadDailyData()
-            }
-        }
-    }
-
-    //
-    fun openAddTag(){
-        dailyUiState = dailyUiState.copy(conditionTagForm = ConditionTag(0L, ""))
-    }
-
-    fun closeConditionTagForm(){
-        dailyUiState = dailyUiState.copy(conditionTagForm = null)
-    }
-
-    // 8. 태그 수정하기
-    fun updateTag(tag: ConditionTag){
-        viewModelScope.launch{
-            val candidates = conditionDefinitionDao.testTagDuplication(tag.name, tag.id)
-
-            if(candidates.isEmpty()){
-                conditionDefinitionDao.updateTag(tag)
-                loadDailyData()
-            }
-        }
-    }
-
-    //
-    fun openUpdateTag(tag: ConditionTag){
-        dailyUiState = dailyUiState.copy(conditionTagForm = tag)
-    }
-
-    // 9. 삭제. 태그랑 컨디션 데피니션 삭제
-    fun deleteTag(tag: ConditionTag){
-        viewModelScope.launch{
-            conditionDefinitionDao.deleteRelationByTag(tag)
-            loadDailyData()
-        }
-    }
-    fun deleteConditionDefinition(condition:ConditionDefinition){
-        viewModelScope.launch{
-            conditionDefinitionDao.deleteRelationByDefinition(condition)
-            loadDailyData()
-        }
-    }
-    fun deleteRelation(relation: ConditionDefinitionTag){
-        viewModelScope.launch {
-            conditionDefinitionDao.deleteRelation(relation)
-            loadDailyData()
-        }
-    }// 트랜잭션으로 중복예방이 아닌 unique 키 추가 -> unique보다는 relation의 id를 사용할일이 없으니 복합주키로 만들어 중복예방
+}// 트랜잭션으로 중복예방이 아닌 unique 키 추가 -> unique보다는 relation의 id를 사용할일이 없으니 복합주키로 만들어 중복예방
 
 
-}
 // launch가 왜 suspend 함수를 실행할 수 있는지

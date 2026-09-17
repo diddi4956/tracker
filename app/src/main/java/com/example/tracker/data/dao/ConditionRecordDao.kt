@@ -6,25 +6,24 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.example.tracker.data.dto.ConditionGetDailyListDto
-import com.example.tracker.data.dto.ConditionGetDefinitionListDto
-import com.example.tracker.data.dto.ConditionGetMonthlyByTagDto
-import com.example.tracker.data.dto.ConditionGetTagListDto
-import com.example.tracker.data.dto.ConditionTrackingByDefinitionDto
-import com.example.tracker.data.dto.ConditionTrackingByTagDto
+import com.example.tracker.data.dto.IdAndFrequencyDto
 import com.example.tracker.data.entity.ConditionCheckRecord
 import com.example.tracker.data.entity.ConditionDefinition
+import com.example.tracker.data.entity.ConditionRelation
+import com.example.tracker.data.entity.ConditionTag
 
 @Dao
 interface ConditionRecordDao {
+    // --------record---------------
     @Insert
-    suspend fun insert(record: ConditionCheckRecord)
+    suspend fun insert(record: ConditionCheckRecord): Long
 
     @Update
     suspend fun update(record: ConditionCheckRecord)
 
     @Delete
     suspend fun delete(record: ConditionCheckRecord)
+
 
     @Query("SELECT * FROM condition_record")
     suspend fun getAll(): List<ConditionCheckRecord>
@@ -35,61 +34,93 @@ interface ConditionRecordDao {
     @Query("SELECT * FROM condition_record WHERE date = :date")
     suspend fun getByDate(date: String): List<ConditionCheckRecord>
 
-    // 트래킹페이지 -1(데피니션별로) -> /dto 수정필요
-    @Query("SELECT r.date AS date, r.conditionDefinitionId AS conditionDefinitionId, d.conditionCategoryId AS conditionCategoryId FROM condition_record AS r LEFT JOIN condition_definition AS d ON r.conditionDefinitionId = d.id WHERE date BETWEEN :start AND :end")
-    suspend fun trackingByDefinition(
-        start: String,
-        end: String
-    ): List<ConditionTrackingByDefinitionDto>
-
-    @Query(
-        "SELECT d.name AS conditionDefinitionName, d.id AS definitionId, t.id AS tagId, t.name AS tagName " +
-                "FROM condition_definition AS d LEFT JOIN condition_definition_tag AS dt ON d.id = dt.conditionDefinitionId INNER JOIN condition_tag AS t ON dt.tagId = t.id " +
-                "WHERE t.id IN (:tagIds) ORDER BY d.name ASC"
-    )
-    suspend fun getDefinitionList(tagIds: List<Long>): List<ConditionGetDefinitionListDto>
-
-    // 트래킹페이지 -2(태그별로) -> /dto수정필요
-    @Query(
-        "SELECT COUNT(r.id) AS checkedCount, r.date AS date, r.conditionDefinitionId AS conditionDefinitionId, d.name AS definitionName, t.name AS tagName, d.conditionCategoryId AS conditionCategoryId " +
-                "FROM condition_tag AS t LEFT JOIN condition_definition_tag AS dt ON t.id = dt.tagId LEFT JOIN condition_definition AS d ON dt.conditionDefinitionId = d.id LEFT JOIN condition_record AS r ON r.conditionDefinitionId = d.id AND r.date BETWEEN :start AND :end " +
-                "WHERE t.id IN (:tagIds) " +
-                "GROUP BY r.date, t.id, t.name " +
-                "ORDER BY d.name ASC"
-    )
-    suspend fun trackingByTag(
-        tagIds: List<Long>,
-        start: String,
-        end: String
-    ): List<ConditionTrackingByTagDto>
-
-    @Query("SELECT name, id FROM condition_tag WHERE id IN (:tagIds)")
-    suspend fun getTagList(tagIds: List<Long>): List<ConditionGetTagListDto>
-
-    // 먼슬리로 추이 보기
-    @Query(
-        "SELECT r.date AS date, COUNT(r.id) AS countOfRecord " +
-                "FROM condition_record AS r INNER JOIN condition_definition AS d ON r.conditionDefinitionId = d.id INNER JOIN condition_definition_tag AS dt ON d.id = dt.conditionDefinitionId INNER JOIN condition_tag AS t ON dt.tagId = t.id " +
-                "WHERE t.id = :tagId AND r.date BETWEEN :start AND :end " +
-                "GROUP BY r.date"
-    )
-    suspend fun getMonthlyByTag(
-        tagId: Long,
-        start: String,
-        end: String
-    ): List<ConditionGetMonthlyByTagDto>
-
-    // 데일리 체크리스트 -> /dto 수정필요
-    @Query(
-        "SELECT d.id AS id, t.id AS tagId, d.name AS name, t.name AS tagName, CASE WHEN r.id IS NULL THEN 0 ELSE 1 END AS checked " +
-                "FROM condition_tag AS t INNER JOIN condition_definition_tag AS dt ON t.id = dt.tagId INNER JOIN condition_definition AS d ON dt.conditionDefinitionId = d.id LEFT JOIN condition_record AS r ON d.id = r.conditionDefinitionId " +
-                "AND r.date = :date " + //그 조건을 조인할때 부를지 조인하고 최종 디비에서 부를지의 차이
-                "ORDER BY t.name ASC, d.frequency DESC,  d.name ASC"
-    ) // 데피니션이 최소 태그 하나는 갖게하고싶은데...엔티티를 어떻게 해야할까 -> 엔티티보단 트랜잭션으로 묶기
-    suspend fun getDailyList(date: String): List<ConditionGetDailyListDto>
+    //--------definition-------------
+    @Insert
+    suspend fun insertDefinition(condition: ConditionDefinition): Long // 근데 자동으로 주키를 반환하게 하는거임? 이렇게 넣으면?
 
     @Update
     suspend fun updateDefinition(condition: ConditionDefinition)
+
+    @Delete
+    suspend fun deleteDefinition(condition: ConditionDefinition)
+
+    //--------tag------------------
+    @Insert
+    suspend fun insertTag(tag: ConditionTag)
+
+    @Update
+    suspend fun updateTag(tag: ConditionTag)
+
+    @Delete
+    suspend fun deleteTag(tag: ConditionTag)
+
+    //------------relation----------
+    @Insert
+    suspend fun insertRelation(relation: ConditionRelation)
+
+    @Update
+    suspend fun updateRelation(relation: ConditionRelation)
+
+    @Delete
+    suspend fun deleteRelation(relation: ConditionRelation)
+
+    // -----------tracking-------------
+    // 선택된 definition들의 record 트래킹
+    @Query("SELECT * " +
+            "FROM condition_record " +
+            "WHERE conditionDefinitionId IN (:definitionIds) AND date BETWEEN :start AND :end")
+    suspend fun getRecordsByDefinitions(definitionIds: List<Long>, start: String, end: String): List<ConditionCheckRecord>
+
+    // 선택된 tag들의 record 트래킹
+    @Query("SELECT DISTINCT rc.* " +
+            "FROM condition_relation AS rl LEFT JOIN  condition_record AS rc ON rl.recordId = rc.id "+
+            "WHERE tagId IN (:tagIds) AND date BETWEEN :start AND :end")
+    suspend fun getRecordsByTags(tagIds: List<Long>, start: String, end: String): List<ConditionCheckRecord> // 데피니션 정보는 쿼리 하나로 처리하려하지말고 뷰모델에서 조합하는게 좋은듯?
+
+    // 레코드로 tag들 정보 갖기(결과는 릴레이션)
+    @Query("SELECT rl.* " +
+            "FROM condition_relation AS rl LEFT JOIN condition_record AS rc ON rl.recordId = rc.id " +
+            "WHERE rl.recordId = :recordId")
+    suspend fun getRelationByRecord(recordId: Long): List<ConditionRelation>
+
+    @Query("SELECT * FROM condition_tag WHERE id = :tagId ")
+    suspend fun getTagByTagId(tagId: Long): ConditionTag?
+
+
+    //-------데일리화면-------------
+    // 입력된 날짜에 체크된 목록 가져오기
+    @Query("SELECT * FROM condition_record WHERE date = :date")
+    suspend fun getCheckedRecordByDate(date: String): List<ConditionCheckRecord>
+
+    // 데피니션id와 등록 수 저장
+    @Query("SELECT conditionDefinitionId AS id, COUNT(id) AS frequency " +
+            "FROM condition_record " +
+            "WHERE conditionDefinitionId IN (:definitionIds) AND (:start IS NULL OR date >= :start) AND (:end IS NULL OR date <= :end) " +
+            "GROUP BY conditionDefinitionId ORDER BY frequency DESC")
+    suspend fun getDefinitionFrequency(definitionIds: List<Long>, start: String?, end: String?): List<IdAndFrequencyDto>
+
+    // 태그id와 등록 수 저장
+    @Query("SELECT rl.tagId AS id, COUNT(recordId) AS frequency " +
+            "FROM condition_record AS rc JOIN condition_relation AS rl ON rc.id = rl.recordId  " +
+            "WHERE tagId IN (:tagIds) AND (:start IS NULL OR rc.date >= :start) AND (:end IS NULL OR rc.date <= :end) " +
+            "GROUP BY tagId ORDER BY frequency DESC")
+    suspend fun getTagFrequency(tagIds: List<Long>, start: String?, end: String?): List<IdAndFrequencyDto>
+
+
+    // 레코드 추가하기(최소 하나의 태그를 가져야함)
+    // 레코드 하나가 최소 하나의 태그를 가져야함 = 최소 하나의 relation을 가져야함 = record insert 와 relation insert를 묶어야함
+    @Transaction
+    suspend fun checkRecord(record: ConditionCheckRecord, tagIds: List<Long>){
+        require(tagIds.isNotEmpty()) {
+            "최소 하나의 태그가 필요합니다."
+        }
+        insert(record).let{id ->
+            tagIds.distinct().forEach{tagId ->
+                insertRelation(ConditionRelation(id, tagId))
+            }
+        }
+    }
+
 
     @Query("SELECT * FROM condition_definition WHERE id = :conditionDefinitionId")
     suspend fun getDefinitionById(conditionDefinitionId: Long): ConditionDefinition
@@ -103,24 +134,4 @@ interface ConditionRecordDao {
     @Query("DELETE FROM condition_record WHERE id = :recordId")
     suspend fun deleteRecordById(recordId: Long)
 
-    @Transaction
-    suspend fun checkingRecordAndDefinitionFrequency(record: ConditionCheckRecord) {
-        val existing = findSameConditionRecord(record.date, record.conditionDefinitionId)
-        val definition = getDefinitionById(record.conditionDefinitionId)
-
-        if (existing == null) { //없으면 새로 만들어야함
-            insert(record)
-            updateDefinition(definition.copy(frequency = definition.frequency + 1))
-        } else {
-            deleteRecordById(existing.id)
-            updateDefinition(definition.copy(frequency = definition.frequency - 1))
-        }
-    }
 }
-/*
-    할것
-    /1. 트래킹페이지에 카테고리별로 보기 추가 -> 굳이? 카테고리는 ui를 위한거지 트래킹을 위한게 아니라 삭제
-    /2. 트래킹페이지(2)에 카테고리별로 색깔입히기 추가 즉, 카테고리id도 끌고옴 -> 트래킹2에서 카테고리 아이디는 크게 필요없을듯하지만 일단 넣어둠
-    /3. 리코드 불러오는 방식 대폭 수정(daily)(checked를 없앴음. 그래서 조회해서 있으면 체크 없으면 체크안함으로 바꿔야함 habit의 dao를 참조) : LEFT JOIN으로 바꾸기
-    4. 트랜잭션 추가
-}*/
