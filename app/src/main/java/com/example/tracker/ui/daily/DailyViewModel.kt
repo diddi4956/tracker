@@ -299,6 +299,9 @@ class  DailyViewModel(
 
             if(candidates.isEmpty()){ // 중복이 없으면 update
                 itemDefinitionDao.update(item)
+                dailyUiState = dailyUiState.copy(
+                    itemForm = null,
+                    itemCandidates = emptyList())
             }
         }
     } // 이게 나으려나? 아님 itemId를 받아야하나
@@ -307,6 +310,7 @@ class  DailyViewModel(
     fun deleteItem(item: ItemDefinition){
         viewModelScope.launch{
             itemDefinitionDao.delete(item)
+            dailyUiState = dailyUiState.copy(itemForm = null, itemCandidates = emptyList())
             loadDailyData()
         }
     }
@@ -336,6 +340,7 @@ class  DailyViewModel(
 
             if(candidate == null){
                 habitDefinitionDao.update(habitDefinition)
+                dailyUiState = dailyUiState.copy(updateHabit = null)
                 loadDailyData()
             }
         }
@@ -347,16 +352,13 @@ class  DailyViewModel(
 
             if(candidate == null){ // 중복이 없는경우 -> insert
                 habitDefinitionDao.insert(habitDefinition)
+                dailyUiState = dailyUiState.copy(updateHabit = null)
                 loadDailyData()
             }
         }
     }
     // 해빗데피니션 수정 팝업
-    fun openUpdateHabit(habit: HabitDefinition){
-        dailyUiState = dailyUiState.copy(updateHabit = habit)
-    }
-
-    fun loadHabitForUpdate(habitDefinitionId: Long){
+    fun openUpdateHabit(habitDefinitionId: Long){
         viewModelScope.launch {
             habitDefinitionDao.findDefinition(habitDefinitionId)?.let { habit ->
                 dailyUiState = dailyUiState.copy(updateHabit = habit)
@@ -365,8 +367,8 @@ class  DailyViewModel(
     }
 
     // 해빗데피니션 추가 팝업
-    fun openAddHabit(){
-        dailyUiState = dailyUiState.copy(updateHabit = HabitDefinition(id = 0L, categoryId = 0L, name = "", importance = 0))
+    fun openAddHabit(categoryId: Long){
+        dailyUiState = dailyUiState.copy(updateHabit = HabitDefinition(id = 0L, categoryId = categoryId, name = "", importance = 0))
     }
 
     fun closeHabitForm(){
@@ -379,7 +381,8 @@ class  DailyViewModel(
             val candidates = habitCategoryDefinitionDao.testDuplication(habitProject.name, habitProject.endDate, habitProject.startDate, null)
 
             if(candidates.isEmpty()){
-                habitCategoryDefinitionDao.insert(habitProject) // 트랜잭션 아직 덜함
+                habitCategoryDefinitionDao.insert(habitProject)
+                dailyUiState = dailyUiState.copy(updateHabitCategory = null)
                 loadDailyData()
             }
         }
@@ -401,17 +404,13 @@ class  DailyViewModel(
 
             if(candidates.isEmpty()){
                 habitCategoryDefinitionDao.update(project)
+                dailyUiState = dailyUiState.copy(updateHabitCategory = null)
                 loadDailyData()
             }
         }
     }
 
-    //
-    fun openUpdateProject(project: HabitCategoryDefinition){
-        dailyUiState = dailyUiState.copy(updateHabitCategory = project)
-    }
-
-    fun loadHabitProject(projectId: Long){
+    fun openUpdateProject(projectId: Long){
         viewModelScope.launch{
             val habitProject = habitCategoryDefinitionDao.findHabitProject(projectId)
             dailyUiState = dailyUiState.copy(updateHabitCategory = habitProject)
@@ -419,9 +418,10 @@ class  DailyViewModel(
     }
 
     // 6. 프로젝트 삭제
-    fun deleteProject(project: HabitCategoryDefinition){
+    fun deleteProject(projectId: Long){
         viewModelScope.launch{
-            habitCategoryDefinitionDao.delete(project)
+            habitCategoryDefinitionDao.deleteHabitProject(projectId)
+            dailyUiState = dailyUiState.copy(updateHabitCategory = null)
             loadDailyData()
         }
     }

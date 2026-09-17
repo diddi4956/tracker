@@ -2,8 +2,18 @@ package com.example.tracker.data.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.ForeignKey
+import androidx.room.Index
 
-@Entity(tableName = "habit_definition")
+@Entity(tableName = "habit_definition",
+    foreignKeys = [ForeignKey(
+        entity = HabitCategoryDefinition::class,
+        parentColumns = ["id"],
+        childColumns = ["categoryId"],
+        onDelete = ForeignKey.CASCADE)],
+    indices = [
+        Index("categoryId")
+    ])
 data class HabitDefinition(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

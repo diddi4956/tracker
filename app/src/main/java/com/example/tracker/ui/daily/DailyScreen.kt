@@ -53,7 +53,9 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
     val state = viewModel.dailyUiState
     var selectedExpenseCategoryId by remember { mutableStateOf<Long?>(null) }
     var pendingSubCategoryName by remember { mutableStateOf("") }
+    var expensePendingDelete by remember { mutableStateOf<ExpenseDailyRecord?>(null) }
     var habitPendingDelete by remember { mutableStateOf<HabitGetDailyListDto?>(null) }
+    var projectPendingDelete by remember { mutableStateOf<Pair<Long, String>?>(null) }
 
     LazyColumn(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -75,6 +77,16 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                     selectedExpenseCategoryId = category.categoryId
                     viewModel.searchSubCategory(category.categoryId, "")
                     viewModel.openAddExpenseRecord()
+                },
+                onEditExpense = { record ->
+                    record.recordId?.let { recordId ->
+                        selectedExpenseCategoryId = record.categoryId
+                        viewModel.searchSubCategory(record.categoryId, "")
+                        viewModel.openUpdateExpenseRecord(recordId)
+                    }
+                },
+                onDeleteExpense = { record ->
+                    expensePendingDelete = record
                 }
             )
         }
@@ -102,17 +114,20 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
             items(state.dailyHabits) { project ->
                 HabitProjectCard(
                     project = project,
+                    onEditProject = {
+                        val categoryId = project.habitList.firstOrNull()?.categoryId
+                            ?: return@HabitProjectCard
+                        viewModel.openUpdateProject(categoryId)
+                    },
+                    onDeleteProject = {
+                        val categoryId = project.habitList.firstOrNull()?.categoryId
+                            ?: return@HabitProjectCard
+                        projectPendingDelete = categoryId to project.categoryName
+                    },
                     onAddHabit = {
                         val categoryId = project.habitList.firstOrNull()?.categoryId
                             ?: return@HabitProjectCard
-                        viewModel.openUpdateHabit(
-                            HabitDefinition(
-                                id = 0L,
-                                categoryId = categoryId,
-                                name = "",
-                                importance = 0
-                            )
-                        )
+                        viewModel.openAddHabit(categoryId)
                     },
                     onHabitChecked = { habit ->
                         habit.id?.let { habitDefinitionId ->
@@ -127,7 +142,7 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                         }
                     },
                     onEditHabit = { habit ->
-                        habit.id?.let(viewModel::loadHabitForUpdate)
+                        habit.id?.let(viewModel::openUpdateHabit)
                     },
                     onDeleteHabit = { habit ->
                         habitPendingDelete = habit
@@ -226,7 +241,6 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                 } else {
                     viewModel.updateProject(project)
                 }
-                viewModel.closeHabitCategoryForm()
             }
         )
     }
@@ -241,7 +255,6 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                 } else {
                     viewModel.updateHabit(habit)
                 }
-                viewModel.closeHabitForm()
             }
         )
     }
@@ -263,6 +276,52 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
             },
             dismissButton = {
                 TextButton(onClick = { habitPendingDelete = null }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
+    expensePendingDelete?.let { record ->
+        AlertDialog(
+            onDismissRequest = { expensePendingDelete = null },
+            title = { Text("지출 기록 삭제") },
+            text = { Text("${record.itemName} 기록을 삭제할까요?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        record.recordId?.let(viewModel::deleteExpenseRecord)
+                        expensePendingDelete = null
+                    }
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { expensePendingDelete = null }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
+    projectPendingDelete?.let { (projectId, projectName) ->
+        AlertDialog(
+            onDismissRequest = { projectPendingDelete = null },
+            title = { Text("습관 프로젝트 삭제") },
+            text = { Text("$projectName 프로젝트와 모든 습관 기록을 삭제할까요?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteProject(projectId)
+                        projectPendingDelete = null
+                    }
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { projectPendingDelete = null }) {
                     Text("취소")
                 }
             }
@@ -615,7 +674,9 @@ private fun DateSelector(date: String, onPrevious: () -> Unit, onNext: () -> Uni
 @Composable
 private fun ExpenseCategoryCard(
     category: ExpenseByCategory,
-    onAddExpense: () -> Unit
+    onAddExpense: () -> Unit,
+    onEditExpense: (ExpenseDailyRecord) -> Unit,
+    onDeleteExpense: (ExpenseDailyRecord) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -645,6 +706,12 @@ private fun ExpenseCategoryCard(
                             }
                         }
                         Text("${NumberFormat.getNumberInstance().format(record.totalPrice)}원")
+                        TextButton(onClick = { onEditExpense(record) }) {
+                            Text("수정")
+                        }
+                        TextButton(onClick = { onDeleteExpense(record) }) {
+                            Text("삭제")
+                        }
                     }
                 }
             }
@@ -819,6 +886,8 @@ private fun utcMillisToDateString(millis: Long): String {
 @Composable
 private fun HabitProjectCard(
     project: HabitCategory,
+    onEditProject: () -> Unit,
+    onDeleteProject: () -> Unit,
     onAddHabit: () -> Unit,
     onHabitChecked: (HabitGetDailyListDto) -> Unit,
     onEditHabit: (HabitGetDailyListDto) -> Unit,
@@ -839,8 +908,16 @@ private fun HabitProjectCard(
                     text = project.categoryName,
                     style = MaterialTheme.typography.titleMedium
                 )
-                TextButton(onClick = onAddHabit) {
-                    Text("추가")
+                Row {
+                    TextButton(onClick = onEditProject) {
+                        Text("수정")
+                    }
+                    TextButton(onClick = onDeleteProject) {
+                        Text("삭제")
+                    }
+                    TextButton(onClick = onAddHabit) {
+                        Text("추가")
+                    }
                 }
             }
 

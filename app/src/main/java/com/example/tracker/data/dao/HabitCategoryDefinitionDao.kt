@@ -7,6 +7,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.example.tracker.data.entity.HabitCategoryDefinition
+import com.example.tracker.data.entity.HabitDefinition
 
 @Dao
 interface HabitCategoryDefinitionDao {
@@ -29,4 +30,6 @@ interface HabitCategoryDefinitionDao {
             "WHERE name = :name AND (startDate < :endDate AND endDate > :startDate) AND (:excludeId IS NULL OR id != :excludeId)")
     suspend fun testDuplication(name: String, endDate: String?, startDate: String?, excludeId: Long?): List<HabitCategoryDefinition>
 
+    @Query("DELETE FROM habit_category WHERE id = :habitCategoryId")
+    suspend fun deleteHabitProject(habitCategoryId: Long)
 }
