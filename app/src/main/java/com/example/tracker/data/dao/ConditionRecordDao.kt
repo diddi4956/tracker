@@ -6,6 +6,8 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import com.example.tracker.data.dto.ConRecordWithDefinitionTags
+import com.example.tracker.data.dto.ConditionCheckRecordAndDefinitionName
 import com.example.tracker.data.dto.IdAndFrequencyDto
 import com.example.tracker.data.entity.ConditionCheckRecord
 import com.example.tracker.data.entity.ConditionDefinition
@@ -89,15 +91,23 @@ interface ConditionRecordDao {
 
     //-------데일리화면-------------
     // 입력된 날짜에 체크된 목록 가져오기
-    @Query("SELECT * FROM condition_record WHERE date = :date")
-    suspend fun getCheckedRecordByDate(date: String): List<ConditionCheckRecord>
+    @Query("SELECT rc.*, d.name AS definitionName " +
+            "FROM condition_record AS rc LEFT JOIN condition_definition AS d ON rc.conditionDefinitionId = d.id " +
+            "WHERE date = :date " +
+            "ORDER BY d.name ASC")
+    suspend fun getCheckedRecordByDate(date: String): List<ConditionCheckRecordAndDefinitionName> // A: List<conditionRecord(recordId포함), definitionName>
+
+    @Query("SELECT t.*, r.recordId AS recordId " +
+            "FROM condition_relation AS r INNER JOIN condition_tag AS t ON r.tagId = t.id " +
+            "WHERE r.recordId IN (:recordIds)" )
+    suspend fun getTagsByRecordIds(recordIds: List<Long>): List<ConRecordWithDefinitionTags> // B: List<recordId, <tags>>(형태는 아님)  ==> dailyConditions: List<ConditionRecordWithTags> = List<A,<B>>
 
     // 데피니션id와 등록 수 저장
     @Query("SELECT conditionDefinitionId AS id, COUNT(id) AS frequency " +
             "FROM condition_record " +
-            "WHERE conditionDefinitionId IN (:definitionIds) AND (:start IS NULL OR date >= :start) AND (:end IS NULL OR date <= :end) " +
+            "WHERE (:start IS NULL OR date >= :start) AND (:end IS NULL OR date <= :end) " +
             "GROUP BY conditionDefinitionId ORDER BY frequency DESC")
-    suspend fun getDefinitionFrequency(definitionIds: List<Long>, start: String?, end: String?): List<IdAndFrequencyDto>
+    suspend fun getDefinitionFrequency(start: String?, end: String?): List<IdAndFrequencyDto>
 
     // 태그id와 등록 수 저장
     @Query("SELECT rl.tagId AS id, COUNT(recordId) AS frequency " +
@@ -121,6 +131,23 @@ interface ConditionRecordDao {
         }
     }
 
+    // 네임으로서치(definition) ame LIKE '%' || :keyword || '%'"
+    @Query("SELECT * FROM condition_definition WHERE name LIKE '%' || :keyword || '%'")
+    suspend fun searchDefinitions(keyword: String): List<ConditionDefinition>
+
+    // 네임으로서치(tag)
+    @Query("SELECT * FROM condition_tag WHERE name LIKE '%' || :keyword || '%'")
+    suspend fun searchTags(keyword: String): List<ConditionTag>
+
+    // 데피니션 중복 체크
+    @Query("SELECT * FROM condition_definition " +
+            "WHERE (:excludeId IS NULL OR id != :excludeId) AND name = :name")
+    suspend fun defDuplicationTest(excludeId: Long?, name: String): List<ConditionDefinition>
+
+    // 태그 중복 체크
+    @Query("SELECT * FROM condition_tag " +
+            "WHERE (:excludeId IS NULL OR id != :excludeId) AND name = :name")
+    suspend fun tagDuplicationTest(excludeId: Long?, name: String): List<ConditionTag>
 
     @Query("SELECT * FROM condition_definition WHERE id = :conditionDefinitionId")
     suspend fun getDefinitionById(conditionDefinitionId: Long): ConditionDefinition

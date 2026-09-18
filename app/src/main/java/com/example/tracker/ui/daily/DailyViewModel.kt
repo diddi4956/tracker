@@ -12,6 +12,10 @@ import com.example.tracker.data.dao.HabitCategoryDefinitionDao
 import com.example.tracker.data.dao.HabitDefinitionDao
 import com.example.tracker.data.dao.HabitRecordDao
 import com.example.tracker.data.dao.ItemDefinitionDao
+import com.example.tracker.data.dto.ConRecordWithDefinitionTags
+import com.example.tracker.data.dto.ConditionRecordWithTags
+import com.example.tracker.data.entity.ConditionDefinition
+import com.example.tracker.data.entity.ConditionTag
 import com.example.tracker.data.entity.ExpenseRecord
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
@@ -23,6 +27,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.locks.Condition
 
 
 /*
@@ -97,6 +102,8 @@ class  DailyViewModel(
             val habitRecords = habitRecordDao.getDailyList(date)
 
 
+
+
             // val 결과목록 = 원본목록.map { 원본한개 ->
             //    결과객체(...)
             //}
@@ -115,9 +122,28 @@ class  DailyViewModel(
                 )
             }
 
+            val conditionRecords = conditionRecordDao.getCheckedRecordByDate(date)
+
+            val tagsByRecordId = conditionRecordDao.getTagsByRecordIds(
+                conditionRecords.map{record -> record.conditionCheckedRecord.id}
+            )
+                .groupBy{data -> data.recordId}
+                .mapValues{(_, rows)-> rows.map{it.tag}}
+
+            val dailyConditionRecords = conditionRecords.map { record ->
+                ConditionRecordWithTags(
+                    conditionRecord = record,
+                    tags = tagsByRecordId[record.conditionCheckedRecord.id].orEmpty()
+                )
+            }
+
+            val conditionCheckList = conditionRecordDao.getDefinitionFrequency(null, null)
+
             dailyUiState = dailyUiState.copy(
                 dailyExpenses = expenseByCategory,
                 dailyHabits = habits,
+                dailyConditions = dailyConditionRecords,
+                conditionDefinitionListByFrequency = conditionCheckList
             ) // 3. State에 저장하기. 기본 State를 복사하면서 habits만 바꾼 새 객체를 만드는 함수(copy). 왜냐면 val이라서 바꿀수가 없음
 
             // 4. dto -> UiState 변환
@@ -505,9 +531,113 @@ class  DailyViewModel(
     }
 
 
-    // condition
+    // -------------condition---------------------
+    // 데피니션 서치창(definitionName: String): List<ConditionDefinition>
+    fun searchConditions(defName: String){
+        viewModelScope.launch {
+            val conditionDefinitions = conditionRecordDao.searchDefinitions(defName)
+            dailyUiState = dailyUiState.copy(conditionDefinitions = conditionDefinitions)
+        }
+    }
 
-}// 트랜잭션으로 중복예방이 아닌 unique 키 추가 -> unique보다는 relation의 id를 사용할일이 없으니 복합주키로 만들어 중복예방
+    // 데피니션 체크 -> 태그선택창 뜸(팝업) -> 태그입력받음 -> 레코드 생성
+    //// 태그팝업띄우기(여기에 태그서치도 들어감)
 
+    // 태그 서치창
+    fun searchTags(tagName: String){
+        viewModelScope.launch {
+            val tags = conditionRecordDao.searchTags(tagName)
+            dailyUiState = dailyUiState.copy(tags = tags)
+        }
+    }
+
+    // 데피니션 추가 팝업 열기
+    fun openAddDefinition(){
+        dailyUiState = dailyUiState.copy(conditionDefinitionForm =
+            ConditionDefinition(
+                id = 0L,
+                name = ""
+                )
+        )
+    }
+    //// 저장(중복체크)
+    fun addDefinition(definition: ConditionDefinition){
+        viewModelScope.launch {
+            val candidate = conditionRecordDao.defDuplicationTest(null, definition.name)
+
+            if(candidate.isEmpty()){
+                conditionRecordDao.insertDefinition(definition)
+                dailyUiState = dailyUiState.copy(conditionDefinitionForm = null)
+            }
+        }
+    }
+
+    // 데피니션 수정 팝업(열기, 폼, 닫기?)
+    fun openUpdateDefinition(definition: ConditionDefinition){
+        dailyUiState = dailyUiState.copy(conditionDefinitionForm =
+            ConditionDefinition(
+                id = definition.id,
+                name = definition.name
+            )
+        )
+    }
+    //// 저장(중복체크)
+    fun updateDefinition(definition: ConditionDefinition){
+        viewModelScope.launch {
+            val candidate = conditionRecordDao.defDuplicationTest(definition.id, definition.name)
+
+            if(candidate.isEmpty()){
+                conditionRecordDao.updateDefinition(definition)
+                dailyUiState = dailyUiState.copy(conditionDefinitionForm = null)
+            }
+        }
+    }
+    // 태그 추가 팝업()
+    fun openAddTag(){
+        dailyUiState = dailyUiState.copy(tagForm =
+            ConditionTag(
+                id = 0L,
+                name = ""
+            )
+        )
+    }
+    //// 저장
+    fun addTag(tag: ConditionTag){
+        viewModelScope.launch {
+            val candidates = conditionRecordDao.tagDuplicationTest(null, tag.name)
+
+            if(candidates.isEmpty()){
+                conditionRecordDao.insertTag(tag)
+                dailyUiState = dailyUiState.copy(tagForm = null)
+            }
+        }
+
+    }
+
+    // 태그 수정 팝업()
+    fun openUpdateTag(tag: ConditionTag){
+        dailyUiState = dailyUiState.copy(tagForm =
+            ConditionTag(
+                id = tag.id,
+                name = tag.name
+            )
+        )
+    }
+    //// 저장
+    fun updateTag(tag: ConditionTag){
+        viewModelScope.launch {
+            val candidates = conditionRecordDao.tagDuplicationTest(tag.id, tag.name)
+
+            if(candidates.isEmpty()){
+                conditionRecordDao.updateTag(tag)
+                dailyUiState = dailyUiState.copy(tagForm = null)
+            }
+        }
+
+    }
+
+    // 하 근데 서치창에서 검색하다 없어서 새로 만들고 만든거를 다시 그 폼으로 가져오려면 뭔가를 바꿧어야했는데 일단 그거 해야함.
+
+}
 
 // launch가 왜 suspend 함수를 실행할 수 있는지

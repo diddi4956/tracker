@@ -1,11 +1,17 @@
 package com.example.tracker.ui.daily
 
+import com.example.tracker.data.dto.ConditionRecordWithTags
 import com.example.tracker.data.dto.HabitGetDailyListDto
+import com.example.tracker.data.dto.IdAndFrequencyDto
+import com.example.tracker.data.entity.ConditionCheckRecord
 import com.example.tracker.data.entity.ExpenseRecord
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.ItemDefinition
+import com.example.tracker.data.entity.ConditionDefinition
+import com.example.tracker.data.entity.ConditionTag
+
 // import com.example.tracker.data.model.expenseCategories
 
 data class DailyUiState(
@@ -29,6 +35,17 @@ data class DailyUiState(
     val updateHabit: HabitDefinition? = null,
 
     // condition
+    val conditionDefinitionListByFrequency: List<IdAndFrequencyDto> = emptyList(), // loadDailyData()
+    val dailyConditions: List<ConditionRecordWithTags> = emptyList(), // loadDailyData()
+
+    val conditionDefinitions: List<ConditionDefinition> = emptyList(),
+
+    val tags: List<ConditionTag> = emptyList(),
+
+    // val conditionForm: ConditionRecordWithTags? = null,
+    val conditionDefinitionForm: ConditionDefinition? = null,
+    val tagForm: ConditionTag? = null,
+
     //
     val isLoading: Boolean = false
 )
