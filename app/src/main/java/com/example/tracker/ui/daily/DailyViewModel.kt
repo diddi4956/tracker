@@ -13,8 +13,11 @@ import com.example.tracker.data.dao.HabitDefinitionDao
 import com.example.tracker.data.dao.HabitRecordDao
 import com.example.tracker.data.dao.ItemDefinitionDao
 import com.example.tracker.data.dto.ConRecordWithDefinitionTags
+import com.example.tracker.data.dto.ConditionCheckRecordAndDefinitionName
 import com.example.tracker.data.dto.ConditionRecordWithTags
+import com.example.tracker.data.entity.ConditionCheckRecord
 import com.example.tracker.data.entity.ConditionDefinition
+import com.example.tracker.data.entity.ConditionRelation
 import com.example.tracker.data.entity.ConditionTag
 import com.example.tracker.data.entity.ExpenseRecord
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
@@ -540,8 +543,72 @@ class  DailyViewModel(
         }
     }
 
-    // 데피니션 체크 -> 태그선택창 뜸(팝업) -> 태그입력받음 -> 레코드 생성
-    //// 태그팝업띄우기(여기에 태그서치도 들어감)
+    // 데일리 체크
+    fun conditionRecord(date: String, definitionId: Long){
+        viewModelScope.launch {
+            val record = conditionRecordDao.findSameRecord(date, definitionId)
+            if(record == null){
+                val id = conditionRecordDao.insert(ConditionCheckRecord(0L, date, definitionId))
+
+                // openAddRelation(팝업)
+                dailyUiState = dailyUiState.copy(
+                    checkingForm = ConditionTagForm(
+                        id,
+                        emptyList())
+                )
+            } else{
+                conditionRecordDao.delete(record)
+                loadDailyData()
+            }
+
+        }
+    }
+
+    // 릴레이션 추가하기
+    fun addRelation(){
+        val form = dailyUiState.checkingForm ?: return
+
+        viewModelScope.launch {
+            form.tags.distinctBy { tag ->  tag.id }
+                .forEach{tag ->
+                    conditionRecordDao.insertRelation(
+                        ConditionRelation(
+                            form.recordId,
+                            tag.id
+                        )
+                    )
+                }
+            dailyUiState = dailyUiState.copy(checkingForm = null, tags = emptyList())
+            loadDailyData()
+        }
+    }
+
+
+    // 릴레이션 수정하기
+    fun updateRelation(){
+        val form = dailyUiState.checkingForm ?: return
+        viewModelScope.launch {
+            val relations = conditionRecordDao.getRelationByRecord(form.recordId)
+            relations.forEach { relation ->
+                conditionRecordDao.deleteRelation(relation)
+            }
+
+            form.tags.forEach { tag ->
+                conditionRecordDao.insertRelation(ConditionRelation(form.recordId, tag.id))
+            }
+            dailyUiState = dailyUiState.copy(
+                checkingForm = null,
+                tags = emptyList()
+            )
+            loadDailyData()
+        }
+    }
+
+    //// 팝업
+    fun openUpdateRelation(record: ConditionCheckRecord, tags: List<ConditionTag>){
+        dailyUiState = dailyUiState.copy(
+            checkingForm = ConditionTagForm(record.id, tags))
+    }
 
     // 태그 서치창
     fun searchTags(tagName: String){

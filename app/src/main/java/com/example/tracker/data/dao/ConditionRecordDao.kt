@@ -117,19 +117,6 @@ interface ConditionRecordDao {
     suspend fun getTagFrequency(tagIds: List<Long>, start: String?, end: String?): List<IdAndFrequencyDto>
 
 
-    // 레코드 추가하기(최소 하나의 태그를 가져야함)
-    // 레코드 하나가 최소 하나의 태그를 가져야함 = 최소 하나의 relation을 가져야함 = record insert 와 relation insert를 묶어야함
-    @Transaction
-    suspend fun checkRecord(record: ConditionCheckRecord, tagIds: List<Long>){
-        require(tagIds.isNotEmpty()) {
-            "최소 하나의 태그가 필요합니다."
-        }
-        insert(record).let{id ->
-            tagIds.distinct().forEach{tagId ->
-                insertRelation(ConditionRelation(id, tagId))
-            }
-        }
-    }
 
     // 네임으로서치(definition) ame LIKE '%' || :keyword || '%'"
     @Query("SELECT * FROM condition_definition WHERE name LIKE '%' || :keyword || '%'")
@@ -138,6 +125,14 @@ interface ConditionRecordDao {
     // 네임으로서치(tag)
     @Query("SELECT * FROM condition_tag WHERE name LIKE '%' || :keyword || '%'")
     suspend fun searchTags(keyword: String): List<ConditionTag>
+
+    // id로 서치(데피니션)
+    @Query("SELECT * FROM condition_definition WHERE id = :definitionId")
+    suspend fun getDefinitionsById(definitionId: Long): List<ConditionDefinition>
+
+    // id로 서치(태그(
+    @Query("SELECT * FROM condition_tag WHERE id = :tagId")
+    suspend fun getTagsById(tagId: Long)
 
     // 데피니션 중복 체크
     @Query("SELECT * FROM condition_definition " +
@@ -149,14 +144,17 @@ interface ConditionRecordDao {
             "WHERE (:excludeId IS NULL OR id != :excludeId) AND name = :name")
     suspend fun tagDuplicationTest(excludeId: Long?, name: String): List<ConditionTag>
 
+    // 같은 리코드 찾기(리코드 체크된지 아닌지 확인)
+    @Query("SELECT * FROM condition_record " +
+            "WHERE date = :date AND conditionDefinitionId = :definitionId LIMIT 1")
+    suspend fun findSameRecord(date: String, definitionId: Long): ConditionCheckRecord?
+
+    @Query("SELECT * FROM condition_relation " +
+            "WHERE recordId = :recordId")
+    suspend fun getRelationsByRecordId(recordId: Long): List<ConditionRelation>
+
     @Query("SELECT * FROM condition_definition WHERE id = :conditionDefinitionId")
     suspend fun getDefinitionById(conditionDefinitionId: Long): ConditionDefinition
-
-    @Query("SELECT * FROM condition_record WHERE date = :date AND conditionDefinitionId = :conditionDefinitionId LIMIT 1") //근데 이거 uique건걸로만 해야하나? 하긴 더 하는거면 에너지낭비긴해
-    suspend fun findSameConditionRecord(
-        date: String,
-        conditionDefinitionId: Long
-    ): ConditionCheckRecord?
 
     @Query("DELETE FROM condition_record WHERE id = :recordId")
     suspend fun deleteRecordById(recordId: Long)

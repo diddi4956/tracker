@@ -10,6 +10,7 @@ import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.ItemDefinition
 import com.example.tracker.data.entity.ConditionDefinition
+import com.example.tracker.data.entity.ConditionRelation
 import com.example.tracker.data.entity.ConditionTag
 
 // import com.example.tracker.data.model.expenseCategories
@@ -38,6 +39,8 @@ data class DailyUiState(
     val conditionDefinitionListByFrequency: List<IdAndFrequencyDto> = emptyList(), // loadDailyData()
     val dailyConditions: List<ConditionRecordWithTags> = emptyList(), // loadDailyData()
 
+    val checkingForm: ConditionTagForm? = null,
+
     val conditionDefinitions: List<ConditionDefinition> = emptyList(),
 
     val tags: List<ConditionTag> = emptyList(),
@@ -48,6 +51,11 @@ data class DailyUiState(
 
     //
     val isLoading: Boolean = false
+)
+
+data class ConditionTagForm(
+    val recordId: Long,
+    val tags: List<ConditionTag> = emptyList() // name들도 필요해서 추가확장해야함
 )
 data class ExpenseDailyRecord(
     val recordId: Long?,
