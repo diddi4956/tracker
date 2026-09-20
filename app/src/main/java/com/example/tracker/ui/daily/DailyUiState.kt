@@ -36,7 +36,7 @@ data class DailyUiState(
     val updateHabit: HabitDefinition? = null,
 
     // condition
-    val conditionDefinitionListByFrequency: List<IdAndFrequencyDto> = emptyList(), // loadDailyData()
+    val conditionDefinitionListByFrequency: List<DefinitionWithFrequency> = emptyList(), // loadDailyData()
     val dailyConditions: List<ConditionRecordWithTags> = emptyList(), // loadDailyData()
 
     val checkingForm: ConditionTagForm? = null,
@@ -91,6 +91,12 @@ data class ExpenseRecordForm(
 data class HabitCategory(
     val categoryName: String,
     val habitList: List<HabitGetDailyListDto>
+)
+
+data class DefinitionWithFrequency(
+    val id: Long,
+    val name: String,
+    val frequency: Long
 )
 
 

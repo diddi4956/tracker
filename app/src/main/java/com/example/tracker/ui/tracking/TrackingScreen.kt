@@ -67,24 +67,7 @@ fun TrackingScreen(viewModel: TrackingViewModel, modifier: Modifier = Modifier) 
         items(state.habitCategoryList) { category -> TrackingRow(category.name, "ID ${category.id}") }
 
         item { TrackingTitle("컨디션") }
-        if (state.getConditionTagList.isEmpty()) {
-            item { Text("선택할 태그가 없어요") }
-        } else {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    state.getConditionTagList.forEach { tag ->
-                        val selected = tag in selectedTags
-                        FilterChip(
-                            selected = selected,
-                            onClick = {
-                                selectedTags = if (selected) selectedTags - tag else selectedTags + tag
-                            },
-                            label = { Text(tag.name) }
-                        )
-                    }
-                }
-            }
-        }
+
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
@@ -97,7 +80,6 @@ fun TrackingScreen(viewModel: TrackingViewModel, modifier: Modifier = Modifier) 
                 ) { Text("컨디션별 조회") }
             }
         }
-        items(state.conditionTagList) { tag -> TrackingRow(tag.name, "ID ${tag.id}") }
         item { Text(" ", modifier = Modifier.padding(bottom = 24.dp)) }
     }
 }

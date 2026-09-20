@@ -13,14 +13,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.runtime.setValue
-import com.example.tracker.data.dao.ConditionDefinitionDao
 import java.util.Calendar
 
 class TrackingViewModel (
     private val expenseRecordDao: ExpenseRecordDao, // 주생성자의 매개변수
     private val habitRecordDao: HabitRecordDao,
     private val conditionRecordDao: ConditionRecordDao,
-    private val conditionDefinitionDao: ConditionDefinitionDao
 ) : ViewModel(){
     var trackingUiState by mutableStateOf(TrackingUiState())
         private set
@@ -72,9 +70,9 @@ class TrackingViewModel (
             val endDate = trackingUiState.endDate
             // val selectCategory = 이건 빈리스트가 아니어야하는데
 
-            val conditionTagList = conditionDefinitionDao.getConditionTagList()
+            // val conditionTagList = conditionDefinitionDao.getConditionTagList()
 
-            trackingUiState = trackingUiState.copy(getConditionTagList = conditionTagList)
+            // trackingUiState = trackingUiState.copy(getConditionTagList = conditionTagList)
         }
     }
 
@@ -158,10 +156,10 @@ class TrackingViewModel (
             val start = trackingUiState.startDate
             val end = trackingUiState.endDate
 
-            val width = conditionRecordDao.trackingByDefinition(start, end)
+            // val width = conditionRecordDao.trackingByDefinition(start, end)
             val tagIds = tags.map{tag -> tag.id} // 이거 맞나?
-            val length = conditionRecordDao.getDefinitionList(tagIds) // 내가 짠 쿼리에 의문인데...이게 맞나? 아래 태그에 관한것도 세로축을 태그아이디를 넣고 돌리는데 데피니션인데도 태그기반으로 찾는게 맞나? 왜이렇게 했찡?
-            trackingUiState = trackingUiState.copy(conditionTrackingByDefinition = width, conditionDefinitionList = length)
+            // val length = conditionRecordDao.getDefinitionList(tagIds) // 내가 짠 쿼리에 의문인데...이게 맞나? 아래 태그에 관한것도 세로축을 태그아이디를 넣고 돌리는데 데피니션인데도 태그기반으로 찾는게 맞나? 왜이렇게 했찡?
+            // trackingUiState = trackingUiState.copy(conditionTrackingByDefinition = width, conditionDefinitionList = length)
         }
     }
 
@@ -171,9 +169,9 @@ class TrackingViewModel (
             val end = trackingUiState.endDate
 
             val tagIds = tags.map{tag -> tag.id}
-            val width = conditionRecordDao.trackingByTag(tagIds, start, end)
-            val length = conditionRecordDao.getTagList(tagIds)
-            trackingUiState = trackingUiState.copy(conditionTrackingByTag = width, conditionTagList = length)
+            // val width = conditionRecordDao.trackingByTag(tagIds, start, end)
+            // val length = conditionRecordDao.getTagList(tagIds)
+            // trackingUiState = trackingUiState.copy(conditionTrackingByTag = width, conditionTagList = length)
         }
     }
 
@@ -182,8 +180,8 @@ class TrackingViewModel (
             val start = trackingUiState.startDate
             val end = trackingUiState.endDate
 
-            val trackingData = conditionRecordDao.getMonthlyByTag(tagId, start, end)
-            trackingUiState = trackingUiState.copy(conditionMonthlyByTag = trackingData)
+            // val trackingData = conditionRecordDao.getMonthlyByTag(tagId, start, end)
+            // trackingUiState = trackingUiState.copy(conditionMonthlyByTag = trackingData)
         }
     }
 }

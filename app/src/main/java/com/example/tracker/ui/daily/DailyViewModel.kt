@@ -141,6 +141,10 @@ class  DailyViewModel(
             }
 
             val conditionCheckList = conditionRecordDao.getDefinitionFrequency(null, null)
+                .map { data ->
+                    val name = conditionRecordDao.getDefinitionById(data.id).name
+                    DefinitionWithFrequency(data.id, name ,data.frequency)
+                }
 
             dailyUiState = dailyUiState.copy(
                 dailyExpenses = expenseByCategory,
@@ -583,6 +587,22 @@ class  DailyViewModel(
         }
     }
 
+    fun toggleConditionTag(tag: ConditionTag){
+        val form = dailyUiState.checkingForm ?:return
+
+        val changedTags =
+            if(form.tags.any{ selected -> selected.id == tag.id}){
+                // 같은걸 짝수번누름 -> 체크 취소
+                form.tags.filterNot{selected ->
+                    selected.id == tag.id
+                } // form에서 tag.id제외
+            }else{
+                form.tags + tag
+            }
+        dailyUiState = dailyUiState.copy(
+            checkingForm = form.copy(tags = changedTags)
+        )
+    }
 
     // 릴레이션 수정하기
     fun updateRelation(){
@@ -593,7 +613,9 @@ class  DailyViewModel(
                 conditionRecordDao.deleteRelation(relation)
             }
 
-            form.tags.forEach { tag ->
+            form.tags
+                .distinctBy { tag -> tag.id  }
+                .forEach { tag ->
                 conditionRecordDao.insertRelation(ConditionRelation(form.recordId, tag.id))
             }
             dailyUiState = dailyUiState.copy(
@@ -610,6 +632,14 @@ class  DailyViewModel(
             checkingForm = ConditionTagForm(record.id, tags))
     }
 
+    // checkingForm 닫기
+    fun closeCheckingForm(){
+        dailyUiState = dailyUiState.copy(
+            checkingForm = null,
+            tags = emptyList()
+        )
+        loadDailyData()
+    }
     // 태그 서치창
     fun searchTags(tagName: String){
         viewModelScope.launch {
@@ -659,6 +689,20 @@ class  DailyViewModel(
             }
         }
     }
+
+    // 데피니션 삭제(데피니션삭제 -> defId들어간 레코드 삭제 -> 레코드id들어간 릴레이션 삭제 -> CASCADE해놔서 괜챃음,,
+    fun deleteDefinition(definition: ConditionDefinition) {
+        viewModelScope.launch {
+            conditionRecordDao.deleteDefinition(definition)
+
+            dailyUiState = dailyUiState.copy(
+                conditionDefinitionForm = null
+            )
+
+            loadDailyData()
+        }
+    }
+
     // 태그 추가 팝업()
     fun openAddTag(){
         dailyUiState = dailyUiState.copy(tagForm =

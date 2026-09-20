@@ -23,7 +23,6 @@ class TrackerViewModelFactory(private val db: AppDatabase): ViewModelProvider.Fa
                     itemDefinitionDao = db.itemDefinitionDao(),
                     habitDefinitionDao = db.habitDefinitionDao(),
                     habitCategoryDefinitionDao = db.habitCategoryDefinitionDao(),
-                    conditionDefinitionDao = db.conditionDefinitionDao()
                 ) as T
             }
 
@@ -32,8 +31,7 @@ class TrackerViewModelFactory(private val db: AppDatabase): ViewModelProvider.Fa
                 TrackingViewModel(
                     expenseRecordDao = db.expenseRecordDao(),
                     habitRecordDao = db.habitRecordDao(),
-                    conditionRecordDao = db.conditionRecordDao(),
-                    conditionDefinitionDao = db.conditionDefinitionDao()
+                    conditionRecordDao = db.conditionRecordDao()
                 ) as T
             }
 

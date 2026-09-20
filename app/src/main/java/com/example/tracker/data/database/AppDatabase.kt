@@ -45,7 +45,6 @@ abstract class AppDatabase : RoomDatabase() { // 인터페이스랑의 차이가
     abstract fun habitRecordDao(): HabitRecordDao
     abstract fun habitDefinitionDao(): HabitDefinitionDao
     abstract fun conditionRecordDao(): ConditionRecordDao
-    abstract fun dailyEntryDao(): DailyEntryDao
     abstract fun expenseRecordDao(): ExpenseRecordDao
     abstract fun expenseSubCategoryDao(): ExpenseSubCategoryDao
     abstract fun itemDefinitionDao(): ItemDefinitionDao

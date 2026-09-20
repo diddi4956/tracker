@@ -71,7 +71,7 @@ interface ConditionRecordDao {
     @Query("SELECT * " +
             "FROM condition_record " +
             "WHERE conditionDefinitionId IN (:definitionIds) AND date BETWEEN :start AND :end")
-    suspend fun getRecordsByDefinitions(definitionIds: List<Long>, start: String, end: String): List<ConditionCheckRecord>
+    suspend fun getRecordsByDefinitions(definitionIds: List<Long>, start: String?, end: String?): List<ConditionCheckRecord>
 
     // 선택된 tag들의 record 트래킹
     @Query("SELECT DISTINCT rc.* " +
@@ -103,10 +103,11 @@ interface ConditionRecordDao {
     suspend fun getTagsByRecordIds(recordIds: List<Long>): List<ConRecordWithDefinitionTags> // B: List<recordId, <tags>>(형태는 아님)  ==> dailyConditions: List<ConditionRecordWithTags> = List<A,<B>>
 
     // 데피니션id와 등록 수 저장
-    @Query("SELECT conditionDefinitionId AS id, COUNT(id) AS frequency " +
-            "FROM condition_record " +
-            "WHERE (:start IS NULL OR date >= :start) AND (:end IS NULL OR date <= :end) " +
-            "GROUP BY conditionDefinitionId ORDER BY frequency DESC")
+    @Query("SELECT d.id AS id, COUNT(r.id) AS frequency " +
+            "FROM condition_definition AS d LEFT JOIN condition_record AS r ON d.id = r.conditionDefinitionId " +
+            "AND (:start IS NULL OR r.date >= :start) AND (:end IS NULL OR r.date <= :end) " +
+            "GROUP BY d.id " +
+            "ORDER BY frequency DESC")
     suspend fun getDefinitionFrequency(start: String?, end: String?): List<IdAndFrequencyDto>
 
     // 태그id와 등록 수 저장
@@ -132,7 +133,7 @@ interface ConditionRecordDao {
 
     // id로 서치(태그(
     @Query("SELECT * FROM condition_tag WHERE id = :tagId")
-    suspend fun getTagsById(tagId: Long)
+    suspend fun getTagsById(tagId: Long): List<ConditionTag>
 
     // 데피니션 중복 체크
     @Query("SELECT * FROM condition_definition " +
