@@ -664,7 +664,12 @@ class  DailyViewModel(
 
             if(candidate.isEmpty()){
                 conditionRecordDao.insertDefinition(definition)
-                dailyUiState = dailyUiState.copy(conditionDefinitionForm = null)
+                val definitions = conditionRecordDao.searchDefinitions("")
+                dailyUiState = dailyUiState.copy(
+                    conditionDefinitionForm = null,
+                    conditionDefinitions = definitions
+                )
+                loadDailyData()
             }
         }
     }

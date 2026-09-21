@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,12 +33,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.tracker.data.dto.HabitGetDailyListDto
 import com.example.tracker.data.entity.ConditionCheckRecord
+import com.example.tracker.data.entity.ConditionDefinition
 import com.example.tracker.data.entity.ConditionTag
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
@@ -49,6 +53,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
@@ -59,6 +65,11 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
     var habitPendingDelete by remember { mutableStateOf<HabitGetDailyListDto?>(null) }
     var projectPendingDelete by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var conditionKeyword by remember { mutableStateOf("") }
+    var showConditionDefinitionAddDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.searchConditions("")
+    }
 
     LazyColumn(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -155,15 +166,28 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
         }
 
         item {
+            SectionTitle("컨디션")
+        }
+        item {
+            Text("데피니션 검색", style = MaterialTheme.typography.titleMedium)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                SectionTitle("컨디션")
+                OutlinedTextField(
+                    value = conditionKeyword,
+                    onValueChange = { keyword ->
+                        conditionKeyword = keyword
+                        viewModel.searchConditions(keyword)
+                    },
+                    label = { Text("컨디션 이름 검색") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
                 Button(
-                    onClick = viewModel::openAddDefinition,
-                    modifier = Modifier.size(40.dp),
+                    onClick = { showConditionDefinitionAddDialog = true },
+                    modifier = Modifier.size(48.dp),
                     shape = CircleShape,
                     contentPadding = PaddingValues(0.dp)
                 ) {
@@ -171,72 +195,110 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                 }
             }
         }
-        item {
-            OutlinedTextField(
-                value = conditionKeyword,
-                onValueChange = { conditionKeyword = it },
-                label = { Text("컨디션 이름 검색") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
 
         val checkedByDefinitionId = state.dailyConditions.associateBy { condition ->
             condition.conditionRecord.conditionCheckedRecord.conditionDefinitionId
         }
-        val visibleDefinitions = state.conditionDefinitionListByFrequency.filter { definition ->
-            conditionKeyword.isBlank() ||
-                definition.name.contains(conditionKeyword, ignoreCase = true)
+        val frequencyByDefinitionId = state.conditionDefinitionListByFrequency.associateBy {
+            definition -> definition.id
+        }
+        val definitionsWithFrequency = state.conditionDefinitions
+            .map { definition ->
+                DefinitionWithFrequency(
+                    id = definition.id,
+                    name = definition.name,
+                    frequency = frequencyByDefinitionId[definition.id]?.frequency ?: 0L
+                )
+            }
+        val displayedDefinitions = if (conditionKeyword.isBlank()) {
+            definitionsWithFrequency.sortedWith(
+                compareByDescending<DefinitionWithFrequency> { definition -> definition.frequency }
+                    .thenBy { definition -> definition.name }
+            )
+        } else {
+            definitionsWithFrequency.sortedWith(
+                compareBy<DefinitionWithFrequency> { definition ->
+                    when {
+                        definition.name.equals(conditionKeyword, ignoreCase = true) -> 0
+                        definition.name.startsWith(conditionKeyword, ignoreCase = true) -> 1
+                        else -> 2
+                    }
+                }.thenBy { definition ->
+                    definition.name.indexOf(conditionKeyword, ignoreCase = true)
+                }.thenByDescending { definition -> definition.frequency }
+            )
         }
 
-        if (visibleDefinitions.isEmpty()) {
-            item { EmptyMessage("등록되거나 검색된 컨디션이 없어요") }
+        item {
+            Text(
+                if (conditionKeyword.isBlank()) "전체 컨디션 · 빈도순" else "검색 결과",
+                style = MaterialTheme.typography.titleMedium
+            )
+            if (displayedDefinitions.isEmpty()) {
+                EmptyMessage(
+                    if (conditionKeyword.isBlank()) {
+                        "등록된 컨디션 데피니션이 없어요"
+                    } else {
+                        "검색된 데피니션이 없어요"
+                    }
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 280.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(displayedDefinitions, key = { definition -> definition.id }) { definition ->
+                        ConditionDefinitionRow(
+                            definition = definition,
+                            checkedCondition = checkedByDefinitionId[definition.id],
+                            date = state.date,
+                            viewModel = viewModel
+                        )
+                    }
+                }
+            }
+        }
+
+        item { Text("오늘 체크된 컨디션", style = MaterialTheme.typography.titleMedium) }
+        if (state.dailyConditions.isEmpty()) {
+            item { EmptyMessage("오늘 체크된 컨디션이 없어요") }
         } else {
-            items(visibleDefinitions, key = { definition -> definition.id }) { definition ->
-                val checkedCondition = checkedByDefinitionId[definition.id]
+            itemsIndexed(state.dailyConditions) { _, condition ->
+                val record = condition.conditionRecord
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(
-                                checked = checkedCondition != null,
-                                onCheckedChange = {
-                                    viewModel.conditionRecord(state.date, definition.id)
+                            Text(record.definitionName, style = MaterialTheme.typography.titleMedium)
+                            TextButton(
+                                onClick = {
+                                    viewModel.openUpdateRelation(
+                                        record.conditionCheckedRecord,
+                                        condition.tags
+                                    )
                                 }
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(definition.name, style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    text = "누적 ${definition.frequency}회",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                            if (checkedCondition != null) {
-                                TextButton(
-                                    onClick = {
-                                        viewModel.openUpdateRelation(
-                                            checkedCondition.conditionRecord.conditionCheckedRecord,
-                                            checkedCondition.tags
+                            ) { Text("태그 수정") }
+                        }
+                        if (condition.tags.isEmpty()) {
+                            Text("태그 없음", style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                items(condition.tags, key = { tag -> tag.id }) { tag ->
+                                    Card(shape = MaterialTheme.shapes.small) {
+                                        Text(
+                                            text = tag.name,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            style = MaterialTheme.typography.labelMedium
                                         )
                                     }
-                                ) {
-                                    Text("태그 수정")
                                 }
                             }
-                        }
-
-                        if (checkedCondition != null) {
-                            Text(
-                                text = if (checkedCondition.tags.isEmpty()) {
-                                    "태그 없음"
-                                } else {
-                                    checkedCondition.tags.joinToString(" · ") { tag -> tag.name }
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(start = 48.dp, bottom = 4.dp)
-                            )
                         }
                     }
                 }
@@ -336,6 +398,7 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
             candidates = state.tags,
             isUpdate = isUpdate,
             onSearch = viewModel::searchTags,
+            onAddTag = viewModel::addTag,
             onToggle = viewModel::toggleConditionTag,
             onDismiss = viewModel::closeCheckingForm,
             onSave = {
@@ -344,6 +407,17 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                 } else {
                     viewModel.addRelation()
                 }
+            }
+        )
+    }
+
+    if (showConditionDefinitionAddDialog) {
+        ConditionDefinitionDialog(
+            onDismiss = { showConditionDefinitionAddDialog = false },
+            onSave = { definition ->
+                conditionKeyword = ""
+                viewModel.addDefinition(definition)
+                showConditionDefinitionAddDialog = false
             }
         )
     }
@@ -419,16 +493,103 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun ConditionDefinitionRow(
+    definition: DefinitionWithFrequency,
+    checkedCondition: com.example.tracker.data.dto.ConditionRecordWithTags?,
+    date: String,
+    viewModel: DailyViewModel
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = checkedCondition != null,
+                onCheckedChange = { viewModel.conditionRecord(date, definition.id) }
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(definition.name, style = MaterialTheme.typography.titleMedium)
+                Text("누적 ${definition.frequency}회", style = MaterialTheme.typography.bodySmall)
+            }
+            if (checkedCondition != null) {
+                Text("오늘 체크", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConditionDefinitionDialog(
+    onDismiss: () -> Unit,
+    onSave: (ConditionDefinition) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("컨디션 데피니션 추가") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { changedName -> name = changedName },
+                label = { Text("컨디션 이름") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(
+                enabled = name.isNotBlank(),
+                onClick = {
+                    onSave(
+                        ConditionDefinition(
+                            id = 0L,
+                            name = name.trim()
+                        )
+                    )
+                }
+            ) {
+                Text("추가")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
+}
+
+@Composable
 private fun ConditionTagDialog(
     selectedTags: List<ConditionTag>,
     candidates: List<ConditionTag>,
     isUpdate: Boolean,
     onSearch: (String) -> Unit,
+    onAddTag: (ConditionTag) -> Unit,
     onToggle: (ConditionTag) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
     var keyword by remember { mutableStateOf("") }
+    var showAddTagDialog by remember { mutableStateOf(false) }
+    var newTagName by remember { mutableStateOf("") }
+    var pendingCreatedTagName by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(candidates, pendingCreatedTagName) {
+        val createdName = pendingCreatedTagName ?: return@LaunchedEffect
+        val createdTag = candidates.firstOrNull { tag -> tag.name == createdName }
+            ?: return@LaunchedEffect
+
+        if (selectedTags.none { tag -> tag.id == createdTag.id }) {
+            onToggle(createdTag)
+        }
+        pendingCreatedTagName = null
+        keyword = ""
+        onSearch("")
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -439,16 +600,32 @@ private fun ConditionTagDialog(
                     text = "태그는 선택하지 않아도 저장할 수 있어요.",
                     style = MaterialTheme.typography.bodySmall
                 )
-                OutlinedTextField(
-                    value = keyword,
-                    onValueChange = { value ->
-                        keyword = value
-                        onSearch(value)
-                    },
-                    label = { Text("태그 검색") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = keyword,
+                        onValueChange = { value ->
+                            keyword = value
+                            onSearch(value)
+                        },
+                        label = { Text("태그 검색") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Button(
+                        onClick = {
+                            newTagName = keyword
+                            showAddTagDialog = true
+                        },
+                        modifier = Modifier.padding(start = 8.dp).size(40.dp),
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text("+")
+                    }
+                }
 
                 if (candidates.isEmpty()) {
                     EmptyMessage("검색된 태그가 없어요")
@@ -484,6 +661,45 @@ private fun ConditionTagDialog(
             }
         }
     )
+
+    if (showAddTagDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddTagDialog = false },
+            title = { Text("태그 추가") },
+            text = {
+                OutlinedTextField(
+                    value = newTagName,
+                    onValueChange = { name -> newTagName = name },
+                    label = { Text("태그 이름") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    enabled = newTagName.isNotBlank(),
+                    onClick = {
+                        val name = newTagName.trim()
+                        onAddTag(ConditionTag(id = 0L, name = name))
+                        keyword = name
+                        pendingCreatedTagName = name
+                        showAddTagDialog = false
+                        coroutineScope.launch {
+                            delay(200)
+                            onSearch(name)
+                        }
+                    }
+                ) {
+                    Text("추가")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddTagDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
 }
 
 

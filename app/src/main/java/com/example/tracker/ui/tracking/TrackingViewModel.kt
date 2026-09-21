@@ -35,11 +35,6 @@ class TrackingViewModel (
         loadTrackingData()
     }
 
-//    fun changeDate(date: String){
-//        trackingUiState = trackingUiState.copy(date = date)
-//        loadTrackingData()
-//    }
-
     fun changePeriod(startDate: String, endDate: String){
         trackingUiState = trackingUiState.copy(startDate = startDate, endDate = endDate)
     }
@@ -68,7 +63,6 @@ class TrackingViewModel (
         viewModelScope.launch{
             val startDate = trackingUiState.startDate
             val endDate = trackingUiState.endDate
-            // val selectCategory = 이건 빈리스트가 아니어야하는데
 
             // val conditionTagList = conditionDefinitionDao.getConditionTagList()
 
