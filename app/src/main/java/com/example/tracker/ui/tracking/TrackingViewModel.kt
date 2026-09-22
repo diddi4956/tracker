@@ -13,6 +13,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.runtime.setValue
+import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
+import com.example.tracker.data.model.IdWithName
+import com.example.tracker.data.model.expenseCategories
 import java.util.Calendar
 
 class TrackingViewModel (
@@ -64,30 +67,46 @@ class TrackingViewModel (
             val startDate = trackingUiState.startDate
             val endDate = trackingUiState.endDate
 
-            // val conditionTagList = conditionDefinitionDao.getConditionTagList()
-
-            // trackingUiState = trackingUiState.copy(getConditionTagList = conditionTagList)
+            trackingUiState = trackingUiState.copy(
+                startDate = startDate,
+                endDate = endDate,
+                expenseSubCategories = emptyList(),
+                selectCategory = expenseCategories
+                )
+            calcDailyExpense()
         }
     }
 
-    // expense
-    fun expenseTracking(){
+    fun selectCategory(categoryId: Long){
+        viewModelScope.launch {
+            val expenseSubCategories = expenseRecordDao.getSubByCategoryId(categoryId)
+            trackingUiState = trackingUiState.copy(
+                expenseSubCategories = expenseSubCategories,
+                selectedSubCategories = expenseSubCategories)
+        }
+
+    }
+
+    fun changeTrackingList(subCategory: ExpenseSubCategoryDefinition){
+        viewModelScope.launch {
+            val subCategories = trackingUiState.selectedSubCategories
+            if(subCategories.contains(subCategory)){
+                trackingUiState = trackingUiState.copy(selectedSubCategories = subCategories - subCategory)
+            } else {
+                trackingUiState =
+                    trackingUiState.copy(selectedSubCategories = subCategories + subCategory)
+            }
+        }
+    }
+
+    // expenseSubCategories.map{ sub -> sub.id}하고 사용해야함
+    fun expenseTracking(subCategories: List<Long>){
         viewModelScope.launch{
             val start = trackingUiState.startDate
             val end = trackingUiState.endDate
 
-            val tracking = expenseRecordDao.tracking(start, end)
+            val tracking = expenseRecordDao.tracking(start, end, subCategories)
             trackingUiState = trackingUiState.copy(expenseTracking = tracking)
-        }
-    }
-
-    fun circleGraphingByCategory(categoryId: Long){
-        viewModelScope.launch{
-            val start = trackingUiState.startDate
-            val end = trackingUiState.endDate
-
-            val circleGraph = expenseRecordDao.circleGraphingByCategory(start, end, categoryId)
-            trackingUiState = trackingUiState.copy(circleGraphingByCategory = circleGraph)
         }
     }
 
@@ -101,12 +120,43 @@ class TrackingViewModel (
         }
     }
 
-    fun calcDailyExpense(){
+    fun selectCategoryForCircleGraph(category: IdWithName){
+        trackingUiState = trackingUiState.copy(clickedCategory = category)
         viewModelScope.launch{
             val start = trackingUiState.startDate
             val end = trackingUiState.endDate
 
-            val graph = expenseRecordDao.calcDailyExpense(start, end)
+            val circleGraph = expenseRecordDao.circleGraphingByCategory(start, end, category.id)
+            trackingUiState = trackingUiState.copy(circleGraphingByCategory = circleGraph)
+        }
+    }
+
+
+    fun changeCategories(category: IdWithName){
+        val categories = trackingUiState.selectCategory
+
+        if(categories.contains(category)){
+            trackingUiState = trackingUiState.copy(selectCategory = categories - category)
+        } else{
+            trackingUiState = trackingUiState.copy(selectCategory = categories + category)
+        }
+        calcDailyExpense()
+    }
+    fun calcDailyExpense(){
+        viewModelScope.launch{
+            val start = trackingUiState.startDate
+            val end = trackingUiState.endDate
+            val selectedCategoryIds = trackingUiState.selectCategory
+
+            val categoryIds =
+                if(selectedCategoryIds.isEmpty()){
+                    expenseCategories.map{category -> category.id}
+                } else{
+                    selectedCategoryIds.map{category -> category.id}
+                }
+
+
+            val graph = expenseRecordDao.calcDailyExpense(start, end, categoryIds)
             trackingUiState = trackingUiState.copy(calcDailyExpense= graph)
         }
     }

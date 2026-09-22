@@ -10,7 +10,8 @@ import com.example.tracker.data.dto.HabitGetMonthlyByCategoryDto
 import com.example.tracker.data.dto.HabitTrackingByCategoryDto
 import com.example.tracker.data.dto.HabitTrackingByDefinitionDto
 import com.example.tracker.data.entity.ConditionTag
-import com.example.tracker.data.model.ExpenseCategory
+import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
+import com.example.tracker.data.model.IdWithName
 import com.example.tracker.data.model.expenseCategories
 
 data class TrackingUiState (
@@ -19,17 +20,19 @@ data class TrackingUiState (
     val startDate: String = "",
     val endDate: String = "",
     // expense
-    val expenseTrackingOption: List<String> = emptyList(), // loadTrackingData() {체크형리스트, 카테고리별 원그래프 등등의 리스트}
-
-    val selectCategory: List<ExpenseCategory> = expenseCategories, // loadTrackingData() {tracking, circleGraphingByCategory공용}
+    val expenseSubCategories : List<ExpenseSubCategoryDefinition> = emptyList(),
+    val selectedSubCategories: List<ExpenseSubCategoryDefinition> = emptyList(),
 
     val expenseTracking: List<ExpenseTrackingDto> = emptyList(),
     // val subCategory: List<String>, // circleGraphingByCategory에서 빼서 쓰기..
 
-    val circleGraphingByCategory: List<ExpenseCircleByCategoryDto> = emptyList(),
-
     val wholeCircleGraphing: List<ExpenseWholeCircleDto> = emptyList(),
 
+    val clickedCategory: IdWithName? = null,
+    val circleGraphingByCategory: List<ExpenseCircleByCategoryDto> = emptyList(),
+
+    val categoryList: List<IdWithName> = expenseCategories,
+    val selectCategory: List<IdWithName> = emptyList(),
     val calcDailyExpense: List<ExpenseDailyPriceDto> = emptyList(),
 
     // habit
@@ -44,4 +47,5 @@ data class TrackingUiState (
     // condition
 
     )
+
 

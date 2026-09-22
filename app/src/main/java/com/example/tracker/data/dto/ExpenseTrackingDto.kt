@@ -4,6 +4,8 @@ data class ExpenseTrackingDto(
 
     val date: String,
 
-    val subCategoryId: Long
+    val subCategoryId: Long,
+
+    val subCategory: String
 
 )
