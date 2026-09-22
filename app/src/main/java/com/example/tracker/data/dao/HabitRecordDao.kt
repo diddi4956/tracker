@@ -9,9 +9,11 @@ import androidx.room.Update
 import com.example.tracker.data.dto.HabitGetCategoryListDto
 import com.example.tracker.data.dto.HabitGetDailyListDto
 import com.example.tracker.data.dto.HabitGetDefinitionListDto
-import com.example.tracker.data.dto.HabitGetMonthlyByCategoryDto
+import com.example.tracker.data.dto.ProjectTracking
 import com.example.tracker.data.dto.HabitTrackingByCategoryDto
 import com.example.tracker.data.dto.HabitTrackingByDefinitionDto
+import com.example.tracker.data.entity.HabitCategoryDefinition
+import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.HabitRecord
 
 @Dao
@@ -64,9 +66,27 @@ interface HabitRecordDao {
     @Query("SELECT r.date AS date, COUNT(r.id) AS countOfRecord " +
             "FROM habit_record AS r INNER JOIN habit_definition AS d ON r.habitDefinitionId = d.id " +
             "WHERE d.categoryId = :categoryId AND r.date BETWEEN :start AND :end GROUP BY r.date")
-    suspend fun getMonthlyByCategory(categoryId: Long, start: String, end: String): List<HabitGetMonthlyByCategoryDto>
+    suspend fun getMonthlyByCategory(categoryId: Long, start: String, end: String): List<ProjectTracking>
 
-    // 데일리 체크리스트 -> 이걸 이렇게 해서 데일리 리스트를 만들어주고(만들때 프로젝트명(카테고리명)이나 우선순위가 필요한데 전부 데피니션에 있음...) 그 후에 리코드를 조작하는 식으로 해야하나 하나 참...어렵네
+    //------새로만든 트래킹 쿼리------
+    @Query("SELECT * " +
+            "FROM habit_category " +
+            "WHERE (endDate IS NULL OR endDate >= :startDate) AND (startDate IS NULL OR startDate <= :endDate) " +
+            "ORDER BY name")
+    suspend fun getHabitProjectsByDate(startDate: String, endDate: String): List<HabitCategoryDefinition>
+
+    @Query("SELECT * " +
+            "FROM habit_definition " +
+            "WHERE categoryId IN (:projectIds)")
+    suspend fun getDefinitionListByProject(projectIds: List<Long>): List<HabitDefinition>
+
+    @Query("SELECT d.* " +
+            "FROM habit_category AS c INNER JOIN habit_definition AS d ON c.id = d.categoryId " +
+            "WHERE (c.endDate IS NULL OR c.endDate >= :startDate) AND (c.startDate IS NULL OR c.startDate <= :endDate) " +
+            "ORDER BY c.id, d.name")
+    suspend fun getAllDefinitions(startDate: String, endDate: String): List<HabitDefinition>
+
+    //----------데일리 체크리스트 -> 이걸 이렇게 해서 데일리 리스트를 만들어주고(만들때 프로젝트명(카테고리명)이나 우선순위가 필요한데 전부 데피니션에 있음...) 그 후에 리코드를 조작하는 식으로 해야하나 하나 참...어렵네
     @Query("SELECT d.id AS id, c.id AS categoryId, d.name AS name, c.name AS categoryName, r.id AS recordId, CASE WHEN r.id IS NULL THEN 0 ELSE 1 END AS checked " +
             "FROM  habit_category AS c LEFT JOIN habit_definition d ON d.categoryId = c.id LEFT JOIN habit_record r ON d.id = r.habitDefinitionId AND r.date = :date " +
             "WHERE (c.startDate IS NULL OR c.startDate <= :date) AND (c.endDate IS NULL OR c.endDate >= :date) ORDER BY importance") // 리코드 없는 데피니션이 사라지면 안되기에 레프트조인

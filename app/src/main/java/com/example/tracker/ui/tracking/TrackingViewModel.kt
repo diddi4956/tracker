@@ -14,6 +14,8 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.runtime.setValue
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
+import com.example.tracker.data.entity.HabitCategoryDefinition
+import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.model.IdWithName
 import com.example.tracker.data.model.expenseCategories
 import java.util.Calendar
@@ -22,7 +24,7 @@ class TrackingViewModel (
     private val expenseRecordDao: ExpenseRecordDao, // 주생성자의 매개변수
     private val habitRecordDao: HabitRecordDao,
     private val conditionRecordDao: ConditionRecordDao,
-) : ViewModel(){
+) : ViewModel() {
     var trackingUiState by mutableStateOf(TrackingUiState())
         private set
 
@@ -33,65 +35,85 @@ class TrackingViewModel (
 
 
     init { // 하 기간을 해야하는거군 하 놔
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault() ). format (Date())
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         changePeriod(today, today)
         loadTrackingData()
     }
 
-    fun changePeriod(startDate: String, endDate: String){
+    fun changePeriod(startDate: String, endDate: String) {
         trackingUiState = trackingUiState.copy(startDate = startDate, endDate = endDate)
     }
 
-    fun extendPeriodToPast(){
-        val startDate = dateFormat.parse(trackingUiState.startDate) ?:return
+    fun extendPeriodToPast() {
+        val startDate = dateFormat.parse(trackingUiState.startDate) ?: return
 
         val calendar = Calendar.getInstance()
         calendar.time = startDate
         calendar.add(Calendar.DAY_OF_MONTH, -1)
 
         trackingUiState = trackingUiState.copy(startDate = dateFormat.format(calendar.time))
+        reloadTrackingData()
     }
 
-    fun extendPeriodToFuture(){
-        val endDate = dateFormat.parse(trackingUiState.endDate) ?:return
+    fun extendPeriodToFuture() {
+        val endDate = dateFormat.parse(trackingUiState.endDate) ?: return
 
         val calendar = Calendar.getInstance()
         calendar.time = endDate
         calendar.add(Calendar.DAY_OF_MONTH, 1)
 
         trackingUiState = trackingUiState.copy(endDate = dateFormat.format(calendar.time))
+        reloadTrackingData()
     }
 
-    fun loadTrackingData(){
-        viewModelScope.launch{
-            val startDate = trackingUiState.startDate
-            val endDate = trackingUiState.endDate
+    fun loadTrackingData() {
+        val startDate = trackingUiState.startDate
+        val endDate = trackingUiState.endDate
 
-            trackingUiState = trackingUiState.copy(
-                startDate = startDate,
-                endDate = endDate,
-                expenseSubCategories = emptyList(),
-                selectCategory = expenseCategories
-                )
-            calcDailyExpense()
+        //---------expense-----------
+        trackingUiState = trackingUiState.copy(
+            startDate = startDate,
+            endDate = endDate,
+            selectedCategories = expenseCategories
+        )
+        calcDailyExpense()
+
+        //----------habit------------
+
+    }
+
+    fun reloadTrackingData() {
+        //--------expense------------
+        val selectedSubCategories = trackingUiState.selectedSubCategories
+        val selectedCategory = trackingUiState.selectedCategory
+
+        calcDailyExpense()
+        expenseTracking(selectedSubCategories.map { sub -> sub.id })
+        wholeCircleGraphing()
+        if (selectedCategory != null) {
+            selectCategoryForCircleGraph(selectedCategory)
         }
+
+        //---------habit---------------
     }
 
-    fun selectCategory(categoryId: Long){
+    fun selectCategory(categoryId: Long) {
         viewModelScope.launch {
             val expenseSubCategories = expenseRecordDao.getSubByCategoryId(categoryId)
             trackingUiState = trackingUiState.copy(
                 expenseSubCategories = expenseSubCategories,
-                selectedSubCategories = expenseSubCategories)
+                selectedSubCategories = expenseSubCategories
+            )
         }
 
     }
 
-    fun changeTrackingList(subCategory: ExpenseSubCategoryDefinition){
+    fun changeTrackingList(subCategory: ExpenseSubCategoryDefinition) {
         viewModelScope.launch {
             val subCategories = trackingUiState.selectedSubCategories
-            if(subCategories.contains(subCategory)){
-                trackingUiState = trackingUiState.copy(selectedSubCategories = subCategories - subCategory)
+            if (subCategories.contains(subCategory)) {
+                trackingUiState =
+                    trackingUiState.copy(selectedSubCategories = subCategories - subCategory)
             } else {
                 trackingUiState =
                     trackingUiState.copy(selectedSubCategories = subCategories + subCategory)
@@ -100,8 +122,8 @@ class TrackingViewModel (
     }
 
     // expenseSubCategories.map{ sub -> sub.id}하고 사용해야함
-    fun expenseTracking(subCategories: List<Long>){
-        viewModelScope.launch{
+    fun expenseTracking(subCategories: List<Long>) {
+        viewModelScope.launch {
             val start = trackingUiState.startDate
             val end = trackingUiState.endDate
 
@@ -110,8 +132,8 @@ class TrackingViewModel (
         }
     }
 
-    fun wholeCircleGraphing(){
-        viewModelScope.launch{
+    fun wholeCircleGraphing() {
+        viewModelScope.launch {
             val start = trackingUiState.startDate
             val end = trackingUiState.endDate
 
@@ -120,9 +142,9 @@ class TrackingViewModel (
         }
     }
 
-    fun selectCategoryForCircleGraph(category: IdWithName){
-        trackingUiState = trackingUiState.copy(clickedCategory = category)
-        viewModelScope.launch{
+    fun selectCategoryForCircleGraph(category: IdWithName) {
+        trackingUiState = trackingUiState.copy(selectedCategory = category)
+        viewModelScope.launch {
             val start = trackingUiState.startDate
             val end = trackingUiState.endDate
 
@@ -132,100 +154,97 @@ class TrackingViewModel (
     }
 
 
-    fun changeCategories(category: IdWithName){
-        val categories = trackingUiState.selectCategory
+    fun changeCategories(category: IdWithName) {
+        val categories = trackingUiState.selectedCategories
 
-        if(categories.contains(category)){
-            trackingUiState = trackingUiState.copy(selectCategory = categories - category)
-        } else{
-            trackingUiState = trackingUiState.copy(selectCategory = categories + category)
+        if (categories.contains(category)) {
+            trackingUiState = trackingUiState.copy(selectedCategories = categories - category)
+        } else {
+            trackingUiState = trackingUiState.copy(selectedCategories = categories + category)
         }
         calcDailyExpense()
     }
-    fun calcDailyExpense(){
-        viewModelScope.launch{
+
+    fun calcDailyExpense() {
+        viewModelScope.launch {
             val start = trackingUiState.startDate
             val end = trackingUiState.endDate
-            val selectedCategoryIds = trackingUiState.selectCategory
+            val selectedCategoryIds = trackingUiState.selectedCategories
 
             val categoryIds =
-                if(selectedCategoryIds.isEmpty()){
-                    expenseCategories.map{category -> category.id}
-                } else{
-                    selectedCategoryIds.map{category -> category.id}
+                if (selectedCategoryIds.isEmpty()) {
+                    expenseCategories.map { category -> category.id }
+                } else {
+                    selectedCategoryIds.map { category -> category.id }
                 }
 
 
             val graph = expenseRecordDao.calcDailyExpense(start, end, categoryIds)
-            trackingUiState = trackingUiState.copy(calcDailyExpense= graph)
+            trackingUiState = trackingUiState.copy(calcDailyExpense = graph)
         }
     }
 
-    // habit
-    fun habitTrackingByDefinition(){
-        viewModelScope.launch{
-            val start = trackingUiState.startDate
-            val end = trackingUiState.endDate
-
-            val width = habitRecordDao.trackingByDefinition(start, end)
-            val length = habitRecordDao.getDefinitionList(start, end)
-            trackingUiState = trackingUiState.copy(habitTrackingByDefinition = width, habitDefinitionList = length)
-        }
-    }
-
-    fun habitTrackingByCategory(){
+    //-------------habit------------------
+    // 설정한 기간에 속하는 프로젝트들 반환
+    fun projectList() {
         viewModelScope.launch {
-            val start = trackingUiState.startDate
-            val end = trackingUiState.endDate
+            val startDate = trackingUiState.startDate
+            val endDate = trackingUiState.endDate
 
-            val width = habitRecordDao.trackingByCategory(start, end)
-            val length = habitRecordDao.getCategoryList(start, end)
-            trackingUiState = trackingUiState.copy(habitTrackingByCategory = width, habitCategoryList = length)
+            val projects = habitRecordDao.getHabitProjectsByDate(startDate, endDate)
+            trackingUiState = trackingUiState.copy(habitProjects = projects)
         }
     }
 
-    fun monthlyByCategory(categoryId: Long){
+    // 선택된 프로젝트로 트래킹
+    fun projectTracking(project: HabitCategoryDefinition) {
         viewModelScope.launch {
-            val start = trackingUiState.startDate
-            val end = trackingUiState.endDate
+            val startDate = trackingUiState.startDate
+            val endDate = trackingUiState.endDate
 
-            val monthlyData = habitRecordDao.getMonthlyByCategory(categoryId, start, end)
-            trackingUiState = trackingUiState.copy(monthlyByCategory = monthlyData)
+            val projectsForTracking =
+                habitRecordDao.getMonthlyByCategory(project.id, startDate, endDate)
+
+            trackingUiState = trackingUiState.copy(
+                selectedHabitProject = project,
+                projectTracking = projectsForTracking
+            )
         }
     }
 
-    // condition
-    fun conditionTrackingByDefinition(tags: List<ConditionTag>){
+    // 선택된 프로젝트에 속한 데피니션들을 리스트로 나열
+    fun habitDefinitionList() {
         viewModelScope.launch {
-            val start = trackingUiState.startDate
-            val end = trackingUiState.endDate
+            val startDate = trackingUiState.startDate
+            val endDate = trackingUiState.endDate
+            val project = trackingUiState.selectedHabitProject
+            val definitionList =
+                if(project != null){
+                    habitRecordDao.getDefinitionListByProject(listOf(project.id))
+                }else{
+                    habitRecordDao.getAllDefinitions(startDate, endDate)
+                }
 
-            // val width = conditionRecordDao.trackingByDefinition(start, end)
-            val tagIds = tags.map{tag -> tag.id} // 이거 맞나?
-            // val length = conditionRecordDao.getDefinitionList(tagIds) // 내가 짠 쿼리에 의문인데...이게 맞나? 아래 태그에 관한것도 세로축을 태그아이디를 넣고 돌리는데 데피니션인데도 태그기반으로 찾는게 맞나? 왜이렇게 했찡?
-            // trackingUiState = trackingUiState.copy(conditionTrackingByDefinition = width, conditionDefinitionList = length)
+            trackingUiState = trackingUiState.copy(habitDefinitions = definitionList)
         }
     }
 
-    fun conditionTrackingByTag(tags: List<ConditionTag>){ // getConditionTagList의 결과를 받음
-        viewModelScope.launch{
-            val start = trackingUiState.startDate
-            val end = trackingUiState.endDate
+    fun changeDefinitionList(definition: HabitDefinition){
+        var definitions = trackingUiState.habitDefinitions
 
-            val tagIds = tags.map{tag -> tag.id}
-            // val width = conditionRecordDao.trackingByTag(tagIds, start, end)
-            // val length = conditionRecordDao.getTagList(tagIds)
-            // trackingUiState = trackingUiState.copy(conditionTrackingByTag = width, conditionTagList = length)
+        if(definitions.contains(definition)){
+            definitions = definitions - definition
+        } else{
+            definitions = definitions + definition
+        }
+
+        trackingUiState = trackingUiState.copy(selectedDefinitions = definitions)
+    }
+
+    fun definitionTracking(){
+        viewModelScope.launch {
+
         }
     }
 
-    fun conditionMonthlyByTag(tagId: Long){
-        viewModelScope.launch{
-            val start = trackingUiState.startDate
-            val end = trackingUiState.endDate
-
-            // val trackingData = conditionRecordDao.getMonthlyByTag(tagId, start, end)
-            // trackingUiState = trackingUiState.copy(conditionMonthlyByTag = trackingData)
-        }
-    }
 }

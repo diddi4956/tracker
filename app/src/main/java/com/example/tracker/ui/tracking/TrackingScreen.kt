@@ -41,8 +41,14 @@ fun TrackingScreen(viewModel: TrackingViewModel, modifier: Modifier = Modifier) 
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(viewModel::extendPeriodToPast, Modifier.weight(1f)) { Text("과거 1일 추가") }
-                OutlinedButton(viewModel::extendPeriodToFuture, Modifier.weight(1f)) { Text("미래 1일 추가") }
+                OutlinedButton(
+                    viewModel::extendPeriodToPast,
+                    Modifier.weight(1f)
+                ) { Text("과거 1일 추가") }
+                OutlinedButton(
+                    viewModel::extendPeriodToFuture,
+                    Modifier.weight(1f)
+                ) { Text("미래 1일 추가") }
             }
         }
 
@@ -56,31 +62,6 @@ fun TrackingScreen(viewModel: TrackingViewModel, modifier: Modifier = Modifier) 
         items(state.calcDailyExpense) { expense ->
             TrackingRow(expense.date, "${formatNumber(expense.dailyTotalPrice)}원")
         }
-
-        item { TrackingTitle("습관") }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(viewModel::habitTrackingByDefinition) { Text("습관별 조회") }
-                OutlinedButton(viewModel::habitTrackingByCategory) { Text("분류별 조회") }
-            }
-        }
-        items(state.habitCategoryList) { category -> TrackingRow(category.name, "ID ${category.id}") }
-
-        item { TrackingTitle("컨디션") }
-
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { viewModel.conditionTrackingByTag(selectedTags) },
-                    enabled = selectedTags.isNotEmpty()
-                ) { Text("태그별 조회") }
-                OutlinedButton(
-                    onClick = { viewModel.conditionTrackingByDefinition(selectedTags) },
-                    enabled = selectedTags.isNotEmpty()
-                ) { Text("컨디션별 조회") }
-            }
-        }
-        item { Text(" ", modifier = Modifier.padding(bottom = 24.dp)) }
     }
 }
 
