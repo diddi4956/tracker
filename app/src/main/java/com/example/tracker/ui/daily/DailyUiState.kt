@@ -2,15 +2,11 @@ package com.example.tracker.ui.daily
 
 import com.example.tracker.data.dto.ConditionRecordWithTags
 import com.example.tracker.data.dto.HabitGetDailyListDto
-import com.example.tracker.data.dto.IdAndFrequencyDto
-import com.example.tracker.data.entity.ConditionCheckRecord
-import com.example.tracker.data.entity.ExpenseRecord
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.ItemDefinition
 import com.example.tracker.data.entity.ConditionDefinition
-import com.example.tracker.data.entity.ConditionRelation
 import com.example.tracker.data.entity.ConditionTag
 
 // import com.example.tracker.data.model.expenseCategories

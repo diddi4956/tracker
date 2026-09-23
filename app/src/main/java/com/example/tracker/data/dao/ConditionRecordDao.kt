@@ -13,6 +13,9 @@ import com.example.tracker.data.entity.ConditionCheckRecord
 import com.example.tracker.data.entity.ConditionDefinition
 import com.example.tracker.data.entity.ConditionRelation
 import com.example.tracker.data.entity.ConditionTag
+import com.example.tracker.ui.tracking.A1
+import com.example.tracker.ui.tracking.B1
+import com.example.tracker.ui.tracking.C
 
 @Dao
 interface ConditionRecordDao {
@@ -30,8 +33,8 @@ interface ConditionRecordDao {
     @Query("SELECT * FROM condition_record")
     suspend fun getAll(): List<ConditionCheckRecord>
 
-    @Query("SELECT * FROM condition_record WHERE id = :recordId")
-    suspend fun getByRecordId(recordId: Long): List<ConditionCheckRecord?>
+//    @Query("SELECT * FROM condition_record WHERE id = :recordId")
+//    suspend fun getByRecordId(recordId: Long): List<ConditionCheckRecord>
 
     @Query("SELECT * FROM condition_record WHERE date = :date")
     suspend fun getByDate(date: String): List<ConditionCheckRecord>
@@ -102,8 +105,9 @@ interface ConditionRecordDao {
             "WHERE r.recordId IN (:recordIds)" )
     suspend fun getTagsByRecordIds(recordIds: List<Long>): List<ConRecordWithDefinitionTags> // B: List<recordId, <tags>>(형태는 아님)  ==> dailyConditions: List<ConditionRecordWithTags> = List<A,<B>>
 
+    //--------트래킹----------
     // 데피니션id와 등록 수 저장
-    @Query("SELECT d.id AS id, COUNT(r.id) AS frequency " +
+    @Query("SELECT d.id AS id, d.name AS name, COUNT(r.id) AS frequency " +
             "FROM condition_definition AS d LEFT JOIN condition_record AS r ON d.id = r.conditionDefinitionId " +
             "AND (:start IS NULL OR r.date >= :start) AND (:end IS NULL OR r.date <= :end) " +
             "GROUP BY d.id " +
@@ -111,12 +115,11 @@ interface ConditionRecordDao {
     suspend fun getDefinitionFrequency(start: String?, end: String?): List<IdAndFrequencyDto>
 
     // 태그id와 등록 수 저장
-    @Query("SELECT rl.tagId AS id, COUNT(recordId) AS frequency " +
-            "FROM condition_record AS rc JOIN condition_relation AS rl ON rc.id = rl.recordId  " +
-            "WHERE tagId IN (:tagIds) AND (:start IS NULL OR rc.date >= :start) AND (:end IS NULL OR rc.date <= :end) " +
+    @Query("SELECT rl.tagId AS id, t.name AS name, COUNT(recordId) AS frequency " +
+            "FROM condition_record AS rc JOIN condition_relation AS rl ON rc.id = rl.recordId  JOIN condition_tag AS t ON rl.tagId = t.id " +
+            "WHERE (:start IS NULL OR rc.date >= :start) AND (:end IS NULL OR rc.date <= :end) " +
             "GROUP BY tagId ORDER BY frequency DESC")
-    suspend fun getTagFrequency(tagIds: List<Long>, start: String?, end: String?): List<IdAndFrequencyDto>
-
+    suspend fun getTagFrequency(start: String?, end: String?): List<IdAndFrequencyDto>
 
 
     // 네임으로서치(definition) ame LIKE '%' || :keyword || '%'"
@@ -131,7 +134,7 @@ interface ConditionRecordDao {
     @Query("SELECT * FROM condition_definition WHERE id = :definitionId")
     suspend fun getDefinitionsById(definitionId: Long): List<ConditionDefinition>
 
-    // id로 서치(태그(
+    // id로 서치(태그)
     @Query("SELECT * FROM condition_tag WHERE id = :tagId")
     suspend fun getTagsById(tagId: Long): List<ConditionTag>
 
@@ -140,7 +143,7 @@ interface ConditionRecordDao {
             "WHERE (:excludeId IS NULL OR id != :excludeId) AND name = :name")
     suspend fun defDuplicationTest(excludeId: Long?, name: String): List<ConditionDefinition>
 
-    // 태그 중복 체크
+    // 태그 중복  체크
     @Query("SELECT * FROM condition_tag " +
             "WHERE (:excludeId IS NULL OR id != :excludeId) AND name = :name")
     suspend fun tagDuplicationTest(excludeId: Long?, name: String): List<ConditionTag>
@@ -159,5 +162,32 @@ interface ConditionRecordDao {
 
     @Query("DELETE FROM condition_record WHERE id = :recordId")
     suspend fun deleteRecordById(recordId: Long)
+
+    //-------tracking--------
+    @Query("SELECT rc.conditionDefinitionId AS definitionId, rc.date AS date, t.* " +
+            "FROM condition_record AS rc LEFT JOIN condition_relation AS rl ON rc.id = rl.recordId LEFT JOIN condition_tag AS t ON rl.tagId = t.id " +
+            "WHERE rc.conditionDefinitionId IN (:definitionIds) AND (rc.date >= :startDate AND rc.date <= :endDate)" )
+    suspend fun trackingByConDefinitions(definitionIds: List<Long>, startDate: String, endDate: String): List<A1>
+
+    @Query("SELECT rl.tagId AS tagId, rc.date AS date, d.* " +
+            "FROM condition_relation AS rl LEFT JOIN condition_record AS rc ON rc.id = rl.recordId JOIN condition_definition AS d ON rc.conditionDefinitionId = d.id " +
+            "WHERE rl.tagId IN (:tagIds) AND (rc.date >= :startDate AND rc.date <= :endDate)")
+    suspend fun trackingByConTags(tagIds: List<Long>, startDate: String, endDate: String): List<B1>
+
+    @Query("SELECT rl.tagId AS id, t.name AS name, COUNT(recordId) AS count " +
+            "FROM condition_record AS rc JOIN condition_relation AS rl ON rc.id = rl.recordId  JOIN condition_tag AS t ON rl.tagId = t.id " +
+            "WHERE (:start IS NULL OR rc.date >= :start) AND (:end IS NULL OR rc.date <= :end) " +
+            "AND rc.conditionDefinitionId = :definitionId " +
+            "GROUP BY tagId " +
+            "ORDER BY count DESC")
+    suspend fun getTagFrequenciesByDefinition(start: String?, end: String?, definitionId: Long): List<C>
+
+    @Query("SELECT d.id AS id, d.name AS name, COUNT(r.id) AS count " +
+            "FROM condition_definition AS d LEFT JOIN condition_record AS r ON d.id = r.conditionDefinitionId JOIN condition_relation AS rl ON r.id = rl.recordId " +
+            "AND (:start IS NULL OR r.date >= :start) AND (:end IS NULL OR r.date <= :end) " +
+            "AND rl.tagId = :tagId " +
+            "GROUP BY d.id " +
+            "ORDER BY count DESC")
+    suspend fun getDefinitionFrequenciesByTag(start: String?, end: String?, tagId: Long): List<C>
 
 }

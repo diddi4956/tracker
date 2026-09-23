@@ -1,17 +1,23 @@
 package com.example.tracker.ui.tracking
 
+import androidx.room.Embedded
+import com.example.tracker.data.dto.ConditionRecordWithTags
 import com.example.tracker.data.dto.DefinitionTracking
 import com.example.tracker.data.dto.ExpenseCircleByCategoryDto
 import com.example.tracker.data.dto.ExpenseDailyPriceDto
 import com.example.tracker.data.dto.ExpenseTrackingDto
 import com.example.tracker.data.dto.ExpenseWholeCircleDto
+import com.example.tracker.data.dto.IdAndFrequencyDto
 import com.example.tracker.data.dto.ProjectTracking
+import com.example.tracker.data.entity.ConditionDefinition
+import com.example.tracker.data.entity.ConditionTag
 import com.example.tracker.data.entity.ExpenseSubCategoryDefinition
 import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.HabitRecord
 import com.example.tracker.data.model.IdWithName
 import com.example.tracker.data.model.expenseCategories
+import java.util.concurrent.locks.Condition
 
 data class TrackingUiState (
 
@@ -64,7 +70,57 @@ A. 그 기간, 그 해빗을 했는가
     val definitionTracking: List<DefinitionTracking> = emptyList(),
 
     // condition
+    // 기본 선택지 목록
+    val conditionDefinitions: List<ConditionDefinition> = emptyList(), // load
+    val conditionTags : List<ConditionTag> = emptyList(), // load
 
+    // 선택된 목록 -> 날짜별로 리코드 트래킹
+    val selectedConDefinitions: List<ConditionDefinition> = emptyList(),
+    val selectedConTags: List<ConditionTag> = emptyList(),
+
+    val trackingByConDefinitions: List<A> = emptyList(),
+    val trackingByConTags: List<B> = emptyList(),
+
+    //선택된 대상(딱 하나만) -> 기간별 데피니션/태그에 딸린 태그s/데피니션s 의 각 누적 횟수
+    val selectedConDefinition: ConditionDefinition? = null,
+    val selectedConTag: ConditionTag? = null,
+
+    val graphingTags: List<C> = emptyList(),
+    val graphingDefinitions: List<C> = emptyList()
     )
+
+// Todo: A, B, C 어쩌구 클래스들 정리(9.24)
+data class A(
+    val definitionId: Long,
+    val date: String,
+    val tags: List<ConditionTag> = emptyList()
+)
+
+data class A1(
+    val definitionId: Long,
+    val date: String,
+    @Embedded
+    val tag: ConditionTag?
+)
+
+data class B(
+    val tagId: Long,
+    val date: String,
+    val definitions: List<ConditionDefinition> = emptyList()
+)
+
+data class B1(
+    val tagId: Long,
+    val date: String,
+    @Embedded
+    val definition: ConditionDefinition
+)
+
+data class C(
+    val id: Long,
+    val name: String,
+    val count: Long
+)
+
 
 
