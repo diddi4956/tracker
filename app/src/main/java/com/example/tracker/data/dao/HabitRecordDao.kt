@@ -6,12 +6,9 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.example.tracker.data.dto.HabitGetCategoryListDto
 import com.example.tracker.data.dto.HabitGetDailyListDto
-import com.example.tracker.data.dto.HabitGetDefinitionListDto
 import com.example.tracker.data.dto.ProjectTracking
-import com.example.tracker.data.dto.HabitTrackingByCategoryDto
-import com.example.tracker.data.dto.HabitTrackingByDefinitionDto
+import com.example.tracker.data.dto.DefinitionTracking
 import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.HabitRecord
@@ -37,32 +34,13 @@ interface HabitRecordDao {
     suspend fun getByDate(date: String): List<HabitRecord>// 원하는 날짜에 한해서만 하는거니까 리스트가 필요없나?
 
     // 데피니션은 기간을 알기 위해 카테고리와 조인해야함, 리코드는 그럴 필요 없음
-    // 트래킹페이지 -1
-    @Query("SELECT date, habitDefinitionId " +
-            "FROM habit_record " +
-            "WHERE date BETWEEN :start AND :end") // start, end는 사용자가 입력하는 통계기간
-    suspend fun trackingByDefinition(start: String, end: String): List<HabitTrackingByDefinitionDto>
+    // (A)트래킹페이지 -1
+    @Query("SELECT r.*, d.name AS definitionName " +
+            "FROM habit_record AS r JOIN habit_definition AS d ON r.habitDefinitionId = d.id " +
+            "WHERE (date BETWEEN :start AND :end) AND d.id IN (:habitIds) ") // start, end는 사용자가 입력하는 통계기간
+    suspend fun trackingByDefinition(start: String, end: String, habitIds: List<Long>): List<DefinitionTracking>
 
-    @Query("SELECT d.name AS habitDefinitionName, d.id AS definitionId " +
-            "FROM habit_definition AS d INNER JOIN habit_category AS c ON d.categoryId = c.id " +
-            "WHERE (c.startDate IS NULL OR c.startDate <= :end) AND (c.endDate IS NULL OR c.endDate >= :start)")
-    suspend fun getDefinitionList(start: String, end: String): List<HabitGetDefinitionListDto>
-    // 가로(날짜) 세로(해빗데피니션 아이디)로 맞춤하여 보여줌
-
-    // 트래킹페이지 -2 // 카운트를 하는 이유는 카운트된 횟수가 많으면 점(?)의 색이 그만큼 진해짐
-    @Query("SELECT COUNT(r.id) AS checkedCount, r.date AS date, r.habitDefinitionId AS definitionId, d.name AS name, d.categoryId AS categoryId " +
-            "FROM habit_definition AS d INNER JOIN habit_record AS r ON d.id = r.habitDefinitionId " +
-            "WHERE r.date BETWEEN :start AND :end " +
-            "GROUP BY r.date, d.categoryId") // 혹시 이거 그룹하는 순서도 중요한건가? 여튼. 카테고리별로 날짜마다 count해야함
-    suspend fun trackingByCategory(start: String, end: String): List<HabitTrackingByCategoryDto>
-
-    @Query("SELECT name, id " +
-            "FROM habit_category " +
-            "WHERE (startDate IS NULL OR startDate <= :end) AND (endDate IS NULL OR endDate >= :start)")
-    suspend fun getCategoryList(start: String, end: String): List<HabitGetCategoryListDto>
-    // 가로(날짜) 세로(카테고리 아이디)로 맞춤하여 ui보여줌
-
-    // 먼슬리로 추이 보기
+    // (C)먼슬리로 추이 보기
     @Query("SELECT r.date AS date, COUNT(r.id) AS countOfRecord " +
             "FROM habit_record AS r INNER JOIN habit_definition AS d ON r.habitDefinitionId = d.id " +
             "WHERE d.categoryId = :categoryId AND r.date BETWEEN :start AND :end GROUP BY r.date")

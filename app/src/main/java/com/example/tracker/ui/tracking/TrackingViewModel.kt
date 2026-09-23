@@ -79,7 +79,8 @@ class TrackingViewModel (
         calcDailyExpense()
 
         //----------habit------------
-
+        projectList()
+        // Todo: 조회 기간과 프로젝트 활동 기간을 비교하여, 활동 기간 밖의 날짜는 '미실천'과 구분되도록 표시하기
     }
 
     fun reloadTrackingData() {
@@ -95,6 +96,8 @@ class TrackingViewModel (
         }
 
         //---------habit---------------
+        reProjectTracking()
+
     }
 
     fun selectCategory(categoryId: Long) {
@@ -202,35 +205,56 @@ class TrackingViewModel (
             val startDate = trackingUiState.startDate
             val endDate = trackingUiState.endDate
 
+            // 선택된 프로젝트로 트래킹
             val projectsForTracking =
                 habitRecordDao.getMonthlyByCategory(project.id, startDate, endDate)
 
+            // 선택된 프로젝트에 속한 데피니션들을 리스트로 나열
+            val definitionList = habitRecordDao.getDefinitionListByProject(listOf(project.id))
+
             trackingUiState = trackingUiState.copy(
                 selectedHabitProject = project,
-                projectTracking = projectsForTracking
+                projectTracking = projectsForTracking,
+                habitDefinitions = definitionList,
+                selectedDefinitions = definitionList
             )
+            definitionTracking()
+
         }
     }
 
-    // 선택된 프로젝트에 속한 데피니션들을 리스트로 나열
-    fun habitDefinitionList() {
+    // 리로드용
+    fun reProjectTracking(){
         viewModelScope.launch {
             val startDate = trackingUiState.startDate
             val endDate = trackingUiState.endDate
-            val project = trackingUiState.selectedHabitProject
-            val definitionList =
-                if(project != null){
-                    habitRecordDao.getDefinitionListByProject(listOf(project.id))
-                }else{
-                    habitRecordDao.getAllDefinitions(startDate, endDate)
-                }
+            val selectedHabitProject = trackingUiState.selectedHabitProject
 
-            trackingUiState = trackingUiState.copy(habitDefinitions = definitionList)
+            val habitProjects = habitRecordDao.getHabitProjectsByDate(startDate, endDate)
+            trackingUiState = trackingUiState.copy(habitProjects = habitProjects)
+
+            if(selectedHabitProject != null && habitProjects.contains(selectedHabitProject)){
+                val projectsForTracking = habitRecordDao.getMonthlyByCategory(
+                    selectedHabitProject.id,
+                    startDate,
+                    endDate)
+                trackingUiState = trackingUiState.copy(projectTracking = projectsForTracking)
+
+                definitionTracking()
+            } else {
+                trackingUiState = trackingUiState.copy(
+                    selectedHabitProject = null,
+                    projectTracking = emptyList(),
+                    habitDefinitions = emptyList(),
+                    selectedDefinitions = emptyList(),
+                    definitionTracking = emptyList())
+            }
         }
+
     }
 
     fun changeDefinitionList(definition: HabitDefinition){
-        var definitions = trackingUiState.habitDefinitions
+        var definitions = trackingUiState.selectedDefinitions
 
         if(definitions.contains(definition)){
             definitions = definitions - definition
@@ -239,12 +263,22 @@ class TrackingViewModel (
         }
 
         trackingUiState = trackingUiState.copy(selectedDefinitions = definitions)
+        definitionTracking()
     }
 
     fun definitionTracking(){
         viewModelScope.launch {
+            val startDate = trackingUiState.startDate
+            val endDate = trackingUiState.endDate
+            val habitIds = trackingUiState.selectedDefinitions.map{def -> def.id}
 
+            val records = habitRecordDao.trackingByDefinition(startDate, endDate, habitIds)
+
+            trackingUiState = trackingUiState.copy(definitionTracking = records)
+            // 세로축: selectedDefinitions, 가로축: definitionTracking
         }
     }
+
+    //---------condition-------------
 
 }

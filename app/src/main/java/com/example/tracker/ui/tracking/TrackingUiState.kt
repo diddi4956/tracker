@@ -1,5 +1,6 @@
 package com.example.tracker.ui.tracking
 
+import com.example.tracker.data.dto.DefinitionTracking
 import com.example.tracker.data.dto.ExpenseCircleByCategoryDto
 import com.example.tracker.data.dto.ExpenseDailyPriceDto
 import com.example.tracker.data.dto.ExpenseTrackingDto
@@ -54,8 +55,8 @@ C. 선택한 프로젝트의 날짜별 실천 개수
 A. 그 기간, 그 해빗을 했는가
 1) 데피니션 선택
      */
+    val habitProjects: List<HabitCategoryDefinition> = emptyList(), // loadTrackingPage()
     val selectedHabitProject: HabitCategoryDefinition? = null,
-    val habitProjects: List<HabitCategoryDefinition> = emptyList(),
     val projectTracking: List<ProjectTracking> = emptyList(),
 
     val habitDefinitions: List<HabitDefinition> = emptyList(),
@@ -64,11 +65,6 @@ A. 그 기간, 그 해빗을 했는가
 
     // condition
 
-    )
-
-data class DefinitionTracking(
-    val definitionName: String,
-    val habitRecord: HabitRecord
     )
 
 
