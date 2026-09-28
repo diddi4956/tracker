@@ -35,10 +35,11 @@ interface ExpenseRecordDao {
 
     // ---------트래킹-------------
     // 원하는 기간에 따라 날짜, 서브카테고리를 가져옴. 아이템이 아닌 서브카테고리별로 체크(ㅇㅇ샴푸 등이 아닌 헤어오일, 헤어세척비누?뭐 이런식)
-    @Query("SELECT r.date, r.subCategoryId, s.name AS subCategory " +
+    @Query("SELECT DISTINCT r.date, r.subCategoryId, s.name AS subCategory " +
             "FROM expense_record AS r JOIN expense_subcategory_definition AS s ON r.subCategoryId = s.id " +
             "WHERE date BETWEEN :start AND :end " +
-            "AND r.subCategoryId IN (:subCategories)")
+            "AND r.subCategoryId IN (:subCategories) " +
+            "ORDER BY r.date, s.name")
     suspend fun tracking(start: String, end: String, subCategories: List<Long>): List<ExpenseTrackingDto>
 
     @Query("SELECT s.id AS subCategoryId, s.name AS subCategoryName, s.categoryId  AS categoryId, SUM(r.unitPrice*r.quantity) AS totalPrice " +

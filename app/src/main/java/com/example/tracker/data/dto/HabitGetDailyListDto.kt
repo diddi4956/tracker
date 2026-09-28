@@ -6,5 +6,7 @@ data class HabitGetDailyListDto (
     val name:String?,
     val categoryName: String,
     val recordId: Long?,
+    val startDate: String?,
+    val endDate: String?,
     val checked: Boolean
 )

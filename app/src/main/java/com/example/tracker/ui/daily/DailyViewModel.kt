@@ -121,6 +121,7 @@ class  DailyViewModel(
             val habits = habitRecords.groupBy { record -> record.categoryId }.map { (_, records) ->
                 HabitCategory(
                     records.firstOrNull()?.categoryName ?: "-",
+                    records.firstOrNull()?.endDate ?:"-",
                     records
                 )
             }

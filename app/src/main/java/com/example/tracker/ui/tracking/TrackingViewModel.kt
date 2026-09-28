@@ -45,7 +45,7 @@ class TrackingViewModel (
         trackingUiState = trackingUiState.copy(startDate = startDate, endDate = endDate)
     }
 
-    fun extendPeriodToPast() {
+    fun extendStartDateToPast() {
         val startDate = dateFormat.parse(trackingUiState.startDate) ?: return
 
         val calendar = Calendar.getInstance()
@@ -56,7 +56,21 @@ class TrackingViewModel (
         reloadTrackingData()
     }
 
-    fun extendPeriodToFuture() {
+    fun extendStartDateToFuture() {
+        val startDate = dateFormat.parse(trackingUiState.startDate) ?: return
+
+        val calendar = Calendar.getInstance()
+        calendar.time = startDate
+        calendar.add(Calendar.DAY_OF_MONTH, 1)
+
+        val changedStartDate = dateFormat.format(calendar.time)
+        if (changedStartDate > trackingUiState.endDate) return
+
+        trackingUiState = trackingUiState.copy(startDate = changedStartDate)
+        reloadTrackingData()
+    }
+
+    fun extendEndDateToFuture() {
         val endDate = dateFormat.parse(trackingUiState.endDate) ?: return
 
         val calendar = Calendar.getInstance()
@@ -64,6 +78,20 @@ class TrackingViewModel (
         calendar.add(Calendar.DAY_OF_MONTH, 1)
 
         trackingUiState = trackingUiState.copy(endDate = dateFormat.format(calendar.time))
+        reloadTrackingData()
+    }
+
+    fun extendEndDateToPast() {
+        val endDate = dateFormat.parse(trackingUiState.endDate) ?: return
+
+        val calendar = Calendar.getInstance()
+        calendar.time = endDate
+        calendar.add(Calendar.DAY_OF_MONTH, -1)
+
+        val changedEndDate = dateFormat.format(calendar.time)
+        if (changedEndDate < trackingUiState.startDate) return
+
+        trackingUiState = trackingUiState.copy(endDate = changedEndDate)
         reloadTrackingData()
     }
 
@@ -78,6 +106,7 @@ class TrackingViewModel (
             selectedCategories = expenseCategories
         )
         calcDailyExpense()
+        wholeCircleGraphing()
 
         //----------habit------------
         projectList()
@@ -91,9 +120,12 @@ class TrackingViewModel (
         //--------expense------------
         val selectedSubCategories = trackingUiState.selectedSubCategories
         val selectedCategory = trackingUiState.selectedCategory
+        val selectedExpenseTrackingCategory = trackingUiState.selectedExpenseTrackingCategory
 
         calcDailyExpense()
-        expenseTracking(selectedSubCategories.map { sub -> sub.id })
+        if (selectedExpenseTrackingCategory != null) {
+            selectCategory(selectedExpenseTrackingCategory.id)
+        }
         wholeCircleGraphing()
         if (selectedCategory != null) {
             selectCategoryForCircleGraph(selectedCategory)
@@ -110,9 +142,17 @@ class TrackingViewModel (
     fun selectCategory(categoryId: Long) {
         viewModelScope.launch {
             val expenseSubCategories = expenseRecordDao.getSubByCategoryId(categoryId)
+            val tracking = expenseRecordDao.tracking(
+                trackingUiState.startDate,
+                trackingUiState.endDate,
+                expenseSubCategories.map { it.id }
+            )
             trackingUiState = trackingUiState.copy(
                 expenseSubCategories = expenseSubCategories,
-                selectedSubCategories = expenseSubCategories
+                selectedSubCategories = expenseSubCategories,
+                selectedExpenseTrackingCategory = trackingUiState.categoryList
+                    .firstOrNull { it.id == categoryId },
+                expenseTracking = tracking
             )
         }
 
@@ -422,12 +462,10 @@ class TrackingViewModel (
 
     fun graphingTags(){
         viewModelScope.launch {
-            val startDate = trackingUiState.startDate
-            val endDate = trackingUiState.endDate
             val selectedConDefinition = trackingUiState.selectedConDefinition
 
             if(selectedConDefinition != null){
-                val graphingTags = conditionRecordDao.getTagFrequenciesByDefinition(startDate, endDate, selectedConDefinition.id)
+                val graphingTags = conditionRecordDao.getTagFrequenciesByDefinition(null, null, selectedConDefinition.id)
                 trackingUiState = trackingUiState.copy(graphingTags = graphingTags)
             }
         }
@@ -441,12 +479,10 @@ class TrackingViewModel (
 
     fun graphingDefinitions(){
         viewModelScope.launch {
-            val startDate = trackingUiState.startDate
-            val endDate = trackingUiState.endDate
             val selectedConTag = trackingUiState.selectedConTag
 
             if(selectedConTag != null){
-                val graphingDefinitions = conditionRecordDao.getDefinitionFrequenciesByTag(startDate, endDate, selectedConTag.id)
+                val graphingDefinitions = conditionRecordDao.getDefinitionFrequenciesByTag(null, null, selectedConTag.id)
                 trackingUiState = trackingUiState.copy(
                     graphingDefinitions = graphingDefinitions
                 )

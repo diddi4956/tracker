@@ -32,6 +32,7 @@ data class TrackingUiState (
     // 트래킹을 위해 선택된 서브카테고리들
 
     val expenseTracking: List<ExpenseTrackingDto> = emptyList(),
+    val selectedExpenseTrackingCategory: IdWithName? = null,
 
 
     val wholeCircleGraphing: List<ExpenseWholeCircleDto> = emptyList(),
@@ -42,6 +43,7 @@ data class TrackingUiState (
 
     val categoryList: List<IdWithName> = expenseCategories,
     val selectedCategories: List<IdWithName> = emptyList(),
+
     val calcDailyExpense: List<ExpenseDailyPriceDto> = emptyList(),
 
     // habit
@@ -121,6 +123,5 @@ data class C(
     val name: String,
     val count: Long
 )
-
 
 

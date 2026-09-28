@@ -86,6 +86,7 @@ data class ExpenseRecordForm(
 
 data class HabitCategory(
     val categoryName: String,
+    val period: String,
     val habitList: List<HabitGetDailyListDto>
 )
 
