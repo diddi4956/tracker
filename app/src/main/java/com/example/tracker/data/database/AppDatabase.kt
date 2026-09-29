@@ -38,7 +38,7 @@ import com.example.tracker.data.entity.ItemDefinition
         ConditionTag::class,
         HabitCategoryDefinition::class,
     ],
-    version = 1 //처음보는 문법임
+    version = 2
 )
 
 abstract class AppDatabase : RoomDatabase() { // 인터페이스랑의 차이가 뭐지?

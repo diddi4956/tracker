@@ -71,7 +71,7 @@ A. 그 기간, 그 해빗을 했는가
     val selectedDefinitions: List<HabitDefinition> = emptyList(),
     val definitionTracking: List<DefinitionTracking> = emptyList(),
 
-    // condition
+    // ----------condition----------
     // 기본 선택지 목록
     val conditionDefinitions: List<ConditionDefinition> = emptyList(), // load
     val conditionTags : List<ConditionTag> = emptyList(), // load

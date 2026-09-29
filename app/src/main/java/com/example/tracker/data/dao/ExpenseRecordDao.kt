@@ -87,17 +87,18 @@ interface ExpenseRecordDao {
     // 있으면 quantity 증가해서 update
     // 없으면 insert
 
-    @Query("SELECT * FROM expense_record WHERE date = :date AND itemId = :itemId AND subCategoryId = :subCategoryId AND (:excludeId IS NULL OR id != :excludeId) LIMIT 1")
+    @Query("SELECT * FROM expense_record WHERE date = :date AND itemId = :itemId AND subCategoryId = :subCategoryId AND unitPrice = :unitPrice AND (:excludeId IS NULL OR id != :excludeId) LIMIT 1")
     suspend fun findSameExpenseRecord(
         date: String,
         itemId: Long,
         subCategoryId: Long,
+        unitPrice: Long,
         excludeId: Long?
     ): ExpenseRecord?
 
     @Transaction
     suspend fun addExpenseRecord(record: ExpenseRecord) {
-        val existing = findSameExpenseRecord(record.date, record.itemId, record.subCategoryId, null)
+        val existing = findSameExpenseRecord(record.date, record.itemId, record.subCategoryId, record.unitPrice, null)
 
         if (existing == null) {
             insert(record)

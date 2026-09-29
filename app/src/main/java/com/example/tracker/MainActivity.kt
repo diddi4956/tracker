@@ -53,7 +53,10 @@ class MainActivity: ComponentActivity() {
                             )
                             NavigationBarItem(
                                 selected = selectedScreen == TrackerScreen.TRACKING,
-                                onClick = { selectedScreen = TrackerScreen.TRACKING },
+                                onClick = {
+                                    trackingViewModel.reloadTrackingData()
+                                    selectedScreen = TrackerScreen.TRACKING
+                                },
                                 icon = { Text("기간") },
                                 label = { Text("Tracking") }
                             )

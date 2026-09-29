@@ -216,6 +216,7 @@ class  DailyViewModel(
                 record.date,
                 record.itemId,
                 record.subCategoryId,
+                record.unitPrice,
                 record.id
             )
 
