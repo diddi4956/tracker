@@ -12,22 +12,51 @@ Tracker는 기록에 필요한 입력구조를 미리 구성해 일상의 지출
 기록을 일일이 다시 살펴보거나 통계를 직접 계산하지 않아도 변화와 패턴을 확인할 수 있도록 만들었다.
 
 
-## 주요 화면 
+## 주요 화면
 
-### 데일리
+### Daily
 
-![데일리 날짜 설정](./docs/images/daily_date.jpeg)
+지출·습관·컨디션을 날짜별로 기록한다.
 
-| 데일리 기록                                                                                           | 트래킹                                                                                                                                                   |
-|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 지출·습관·컨디션을 날짜별로 기록                                                                               | 기간별 기록을 타임라인과 그래프로 비교                                                                                                                              |
-| ![데일리 날짜 설정](docs/images/daily_date.jpeg)                                                        | ![트래킹 기간 설정](docs/images/tracking_period.jpeg)                                                                                                          |
-| ![데일리 지출 기록](docs/images/daily_expense.jpeg) <br/>![지출기록 팝업](docs/images/daily_expense_add.jpeg) | ![트래킹 지출1](docs/images/tracking_expense_1.jpeg)<br/>![트래킹지출2](docs/images/tracking_expense_2.jpeg)<br/>![트래킹지출3](docs/images/tracking_expense_3.jpeg) |
-| ![데일리 해빗 기록](docs/images/daily_habit.jpeg)<br/>![해빗기록 팝업](docs/images/daily_habit_add.jpeg)      | ![트래킹 해빗1](docs/images/tracking_habit_1.jpeg)<br/>![트래킹 해빗2](docs/images/tracking_habit_2.jpeg)                                                          |
-| ![데일리 컨디션 기록](docs/images/daily_conditionCheck.jpeg)                                             | ![트래킹 컨디션1](docs/images/tracking_condition_1.jpeg)<br/>![트래킹 컨디션2](docs/images/tracking_condition_2.jpeg)                                             |
-| ![페이지 바꾸기](docs/images/page_change.jpeg)                                                         |                                                                                                                                                       |
+<p align="center">
+  <img src="docs/images/daily_date.jpeg" width="700" alt="데일리 날짜 설정">
+</p>
 
-> 실제 사용 화면과 입력 과정을 보여주는 GIF 또는 스크린샷을 추가할 예정입니다.
+| 지출 기록 | 지출 입력 |
+|:---:|:---:|
+| <img src="docs/images/daily_expense.jpeg" width="320" alt="데일리 지출 기록"> | <img src="docs/images/daily_expense_add.jpeg" width="320" alt="지출 기록 팝업"> |
+
+| 습관 기록 | 습관 입력 |
+|:---:|:---:|
+| <img src="docs/images/daily_habit.jpeg" width="320" alt="데일리 습관 기록"> | <img src="docs/images/daily_habit_add.jpeg" width="320" alt="습관 기록 팝업"> |
+
+| 컨디션 기록 |
+|:---:|
+| <img src="docs/images/daily_conditionCheck.jpeg" width="360" alt="데일리 컨디션 기록"> |
+
+<p align="center">
+  <img src="docs/images/page_change.jpeg" width="700" alt="Daily와 Tracking 페이지 전환">
+</p>
+
+### Tracking
+
+선택한 기간의 기록을 타임라인과 그래프로 비교한다.
+
+| 기간 설정 | 지출 트래킹 요약 |
+|:---:|:---:|
+| <img src="docs/images/tracking_period.jpeg" width="320" alt="트래킹 기간 설정"> | <img src="docs/images/tracking_expense_3.jpeg" width="320" alt="지출 트래킹 요약"> |
+
+| 지출 트래킹 1 | 지출 트래킹 2 |
+|:---:|:---:|
+| <img src="docs/images/tracking_expense_1.jpeg" width="320" alt="지출 트래킹 화면 1"> | <img src="docs/images/tracking_expense_2.jpeg" width="320" alt="지출 트래킹 화면 2"> |
+
+| 습관 트래킹 1 | 습관 트래킹 2 |
+|:---:|:---:|
+| <img src="docs/images/tracking_habit_1.jpeg" width="320" alt="습관 트래킹 화면 1"> | <img src="docs/images/tracking_habit_2.jpeg" width="320" alt="습관 트래킹 화면 2"> |
+
+| 컨디션 트래킹 1 | 컨디션 트래킹 2 |
+|:---:|:---:|
+| <img src="docs/images/tracking_condition_1.jpeg" width="320" alt="컨디션 트래킹 화면 1"> | <img src="docs/images/tracking_condition_2.jpeg" width="320" alt="컨디션 트래킹 화면 2"> |
 
 ## 핵심 기능 
 ### 지출 
