@@ -1,7 +1,9 @@
 package com.example.tracker.ui.daily
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +58,7 @@ import com.example.tracker.data.entity.HabitCategoryDefinition
 import com.example.tracker.data.entity.HabitDefinition
 import com.example.tracker.data.entity.HabitRecord
 import com.example.tracker.data.entity.ItemDefinition
+import com.example.tracker.data.model.expenseCategories
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -66,6 +69,7 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
     val state = viewModel.dailyUiState
@@ -76,6 +80,12 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
     var projectPendingDelete by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var conditionKeyword by remember { mutableStateOf("") }
     var showConditionDefinitionAddDialog by remember { mutableStateOf(false) }
+    var conditionTagForActions by remember { mutableStateOf<ConditionTag?>(null) }
+    var conditionTagBeingEdited by remember { mutableStateOf<ConditionTag?>(null) }
+    var conditionTagPendingDelete by remember { mutableStateOf<ConditionTag?>(null) }
+    var conditionDefinitionForActions by remember { mutableStateOf<ConditionDefinition?>(null) }
+    var conditionDefinitionBeingEdited by remember { mutableStateOf<ConditionDefinition?>(null) }
+    var conditionDefinitionPendingDelete by remember { mutableStateOf<ConditionDefinition?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.searchConditions("")
@@ -95,7 +105,7 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "하루의 지출, 습관과 컨디션을 한곳에 기록해요.",
+                    text = "하루의 지출, 습관과 컨디션을 한곳에 기록합니다.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFF777772)
                 )
@@ -110,7 +120,7 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
         item {
             NotionSection(
                 title = "지출",
-                description = "오늘 사용한 금액과 지출 항목을 기록해요."
+                description = "오늘 사용한 금액과 지출 항목을 기록합니다."
             ) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(state.dailyExpenses, key = { it.categoryId }) { category ->
@@ -139,7 +149,7 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
         item {
             NotionSection(
                 title = "습관",
-                description = "오늘의 습관을 확인하고 실천 여부를 체크해요.",
+                description = "오늘의 습관을 확인하고 실천 여부를 체크합니다.",
                 action = {
                     Button(
                         onClick = viewModel::openAddProject,
@@ -150,7 +160,7 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                 }
             ) {
                 if (state.dailyHabits.isEmpty()) {
-                    EmptyMessage("등록된 습관이 없어요")
+                    EmptyMessage("등록된 습관이 없습니다.")
                 } else {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(state.dailyHabits, key = { it.categoryName }) { project ->
@@ -230,7 +240,7 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
         item {
             NotionSection(
                 title = "컨디션",
-                description = "오늘 느낀 증상과 함께 떠오른 환경 태그를 남겨요.",
+                description = "오늘 느낀 증상과 함께 떠오른 환경 태그를 남깁니다.",
                 action = {
                     Button(
                         onClick = { showConditionDefinitionAddDialog = true },
@@ -257,9 +267,9 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                 if (displayedDefinitions.isEmpty()) {
                     EmptyMessage(
                         if (conditionKeyword.isBlank()) {
-                            "등록된 컨디션 데피니션이 없어요"
+                            "등록된 컨디션 데피니션이 없음"
                         } else {
-                            "검색된 데피니션이 없어요"
+                            "검색된 데피니션이 없음"
                         }
                     )
                 } else {
@@ -272,7 +282,13 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                                 definition = definition,
                                 checkedCondition = checkedByDefinitionId[definition.id],
                                 date = state.date,
-                                viewModel = viewModel
+                                viewModel = viewModel,
+                                onLongClick = {
+                                    conditionDefinitionForActions = ConditionDefinition(
+                                        id = definition.id,
+                                        name = definition.name
+                                    )
+                                }
                             )
                         }
                     }
@@ -280,7 +296,7 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
 
                 SectionBand("오늘 체크된 컨디션")
                 if (state.dailyConditions.isEmpty()) {
-                    EmptyMessage("오늘 체크된 컨디션이 없어요")
+                    EmptyMessage("오늘 체크된 컨디션이 없음")
                 } else {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(state.dailyConditions, key = {
@@ -309,16 +325,34 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                                         }
                                     ) { Text("태그") }
                                 }
-                                Text(
-                                    text = if (condition.tags.isEmpty()) {
-                                        "태그 없음"
-                                    } else {
-                                        condition.tags.joinToString(" · ") { it.name }
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFF5F6F67),
-                                    maxLines = 2
-                                )
+                                if (condition.tags.isEmpty()) {
+                                    Text(
+                                        text = "태그 없음",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF5F6F67)
+                                    )
+                                } else {
+                                    condition.tags.forEach { tag ->
+                                        Text(
+                                            text = tag.name,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .combinedClickable(
+                                                    onClick = {
+                                                        viewModel.openUpdateRelation(
+                                                            record.conditionCheckedRecord,
+                                                            condition.tags
+                                                        )
+                                                    },
+                                                    onLongClick = { conditionTagForActions = tag }
+                                                )
+                                                .padding(vertical = 3.dp),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color(0xFF5F6F67),
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -332,8 +366,13 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
         ExpenseRecordDialog(
             initialForm = form,
             categoryId = selectedExpenseCategoryId ?: 0L,
+            categories = expenseCategories,
             itemCandidates = state.itemCandidates,
             subCategoryCandidates = state.expenseSubCategoryCandidates,
+            onCategoryChange = { categoryId ->
+                selectedExpenseCategoryId = categoryId
+                viewModel.searchSubCategory(categoryId, "")
+            },
             onSubCategorySearch = viewModel::searchSubCategory,
             onAddSubCategory = { categoryId, name ->
                 pendingSubCategoryName = name
@@ -435,6 +474,8 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
             isUpdate = isUpdate,
             onSearch = viewModel::searchTags,
             onAddTag = viewModel::addTag,
+            onUpdateTag = viewModel::updateTag,
+            onDeleteTag = viewModel::deleteTag,
             onToggle = viewModel::toggleConditionTag,
             onDismiss = viewModel::closeCheckingForm,
             onSave = {
@@ -454,6 +495,134 @@ fun DailyScreen(viewModel: DailyViewModel, modifier: Modifier = Modifier) {
                 conditionKeyword = ""
                 viewModel.addDefinition(definition)
                 showConditionDefinitionAddDialog = false
+            }
+        )
+    }
+
+    conditionDefinitionForActions?.let { definition ->
+        AlertDialog(
+            onDismissRequest = { conditionDefinitionForActions = null },
+            title = { Text(definition.name) },
+            text = { Text("컨디션 데피니션을 수정하거나 삭제할 수 있음.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        conditionDefinitionForActions = null
+                        conditionDefinitionBeingEdited = definition
+                    }
+                ) { Text("수정") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            conditionDefinitionForActions = null
+                            conditionDefinitionPendingDelete = definition
+                        }
+                    ) { Text("삭제") }
+                    TextButton(onClick = { conditionDefinitionForActions = null }) {
+                        Text("닫기")
+                    }
+                }
+            }
+        )
+    }
+
+    conditionDefinitionBeingEdited?.let { definition ->
+        ConditionDefinitionDialog(
+            initialDefinition = definition,
+            onDismiss = { conditionDefinitionBeingEdited = null },
+            onSave = { updatedDefinition ->
+                viewModel.updateDefinition(updatedDefinition)
+                conditionDefinitionBeingEdited = null
+            }
+        )
+    }
+
+    conditionDefinitionPendingDelete?.let { definition ->
+        AlertDialog(
+            onDismissRequest = { conditionDefinitionPendingDelete = null },
+            title = { Text("컨디션 데피니션 삭제") },
+            text = {
+                Text(
+                    "'${definition.name}' 데피니션과 연결된 날짜별 기록을 모두 삭제함.\n" +
+                        "이 작업은 되돌릴 수 없음."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteDefinition(definition)
+                        conditionDefinitionPendingDelete = null
+                    }
+                ) { Text("삭제") }
+            },
+            dismissButton = {
+                TextButton(onClick = { conditionDefinitionPendingDelete = null }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
+    conditionTagForActions?.let { tag ->
+        AlertDialog(
+            onDismissRequest = { conditionTagForActions = null },
+            title = { Text(tag.name) },
+            text = { Text("태그를 수정하거나 삭제할 수 있음.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        conditionTagForActions = null
+                        conditionTagBeingEdited = tag
+                    }
+                ) { Text("수정") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            conditionTagForActions = null
+                            conditionTagPendingDelete = tag
+                        }
+                    ) { Text("삭제") }
+                    TextButton(onClick = { conditionTagForActions = null }) { Text("닫기") }
+                }
+            }
+        )
+    }
+
+    conditionTagBeingEdited?.let { tag ->
+        ConditionTagEditDialog(
+            initialTag = tag,
+            onDismiss = { conditionTagBeingEdited = null },
+            onSave = { updatedTag ->
+                viewModel.updateTag(updatedTag)
+                conditionTagBeingEdited = null
+            }
+        )
+    }
+
+    conditionTagPendingDelete?.let { tag ->
+        AlertDialog(
+            onDismissRequest = { conditionTagPendingDelete = null },
+            title = { Text("태그 삭제") },
+            text = {
+                Text(
+                    "'${tag.name}' 태그를 삭제함.\n" +
+                        "연결된 컨디션 기록에서는 이 태그만 제거됨."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteTag(tag)
+                        conditionTagPendingDelete = null
+                    }
+                ) { Text("삭제") }
+            },
+            dismissButton = {
+                TextButton(onClick = { conditionTagPendingDelete = null }) { Text("취소") }
             }
         )
     }

@@ -83,7 +83,7 @@ fun TrackingScreen(
                 modifier = Modifier.padding(top = 16.dp)
             )
             Text(
-                text = "기록을 기간별로 비교하고 변화의 흐름을 살펴봐요.",
+                text = "기록을 기간별로 비교하고 변화의 흐름을 살펴봅니다.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF777772)
             )

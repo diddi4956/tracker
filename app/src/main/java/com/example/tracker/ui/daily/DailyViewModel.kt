@@ -692,12 +692,16 @@ class  DailyViewModel(
 
             if(candidate.isEmpty()){
                 conditionRecordDao.updateDefinition(definition)
-                dailyUiState = dailyUiState.copy(conditionDefinitionForm = null)
+                dailyUiState = dailyUiState.copy(
+                    conditionDefinitionForm = null,
+                    conditionDefinitions = conditionRecordDao.searchDefinitions("")
+                )
+                loadDailyData()
             }
         }
     }
 
-    // 데피니션 삭제(데피니션삭제 -> defId들어간 레코드 삭제 -> 레코드id들어간 릴레이션 삭제 -> CASCADE해놔서 괜챃음,,
+    // 데피니션을 삭제하면 연결된 기록과 릴레이션도 CASCADE로 함께 삭제됨
     fun deleteDefinition(definition: ConditionDefinition) {
         viewModelScope.launch {
             conditionRecordDao.deleteDefinition(definition)
@@ -748,10 +752,38 @@ class  DailyViewModel(
 
             if(candidates.isEmpty()){
                 conditionRecordDao.updateTag(tag)
-                dailyUiState = dailyUiState.copy(tagForm = null)
+                val changedForm = dailyUiState.checkingForm?.let { form ->
+                    form.copy(
+                        tags = form.tags.map { selectedTag ->
+                            if (selectedTag.id == tag.id) tag else selectedTag
+                        }
+                    )
+                }
+                dailyUiState = dailyUiState.copy(
+                    tagForm = null,
+                    checkingForm = changedForm,
+                    tags = conditionRecordDao.searchTags("")
+                )
+                loadDailyData()
             }
         }
 
+    }
+
+    fun deleteTag(tag: ConditionTag) {
+        viewModelScope.launch {
+            conditionRecordDao.deleteTag(tag)
+
+            val changedForm = dailyUiState.checkingForm?.let { form ->
+                form.copy(tags = form.tags.filterNot { selectedTag -> selectedTag.id == tag.id })
+            }
+            dailyUiState = dailyUiState.copy(
+                tagForm = null,
+                checkingForm = changedForm,
+                tags = conditionRecordDao.searchTags("")
+            )
+            loadDailyData()
+        }
     }
 
     // 하 근데 서치창에서 검색하다 없어서 새로 만들고 만든거를 다시 그 폼으로 가져오려면 뭔가를 바꿧어야했는데 일단 그거 해야함.
