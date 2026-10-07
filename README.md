@@ -34,9 +34,6 @@ Tracker는 기록에 필요한 입력구조를 미리 구성해 일상의 지출
 |:---:|
 | <img src="docs/images/daily_conditionCheck.jpeg" width="360" alt="데일리 컨디션 기록"> |
 
-<p align="center">
-  <img src="docs/images/page_change.jpeg" width="700" alt="Daily와 Tracking 페이지 전환">
-</p>
 
 ### Tracking
 
